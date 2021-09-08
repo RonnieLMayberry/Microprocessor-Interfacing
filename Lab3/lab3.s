@@ -86,7 +86,6 @@ turnoff
 		bl delay	
 		
 		b read
-		
 stp
 		b stp
  
