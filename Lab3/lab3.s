@@ -60,10 +60,9 @@ read
 		LDR 			R4, bit10 
 		ANDS			R4, R3	; set Z flag (0 indicates pressed)
 		
-		BNE read	; 1
-		BEQ pressed 	; 0
+		BNE read	; if ANDS => 1 (not pressed)
 		
-pressed
+		; pressed
 		CMP			R12, #1
 		BEQ turnoff		; if true, turn off LED '1'
 		BNE turnon		; if false, turn on LED '0'
