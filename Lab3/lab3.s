@@ -52,26 +52,24 @@ __main
 		STR 			R3,[R1,#SET_REG_OFFSET] ; set CLEAR bits - This turns ON the LED
 		bl delay
 		
-		MOV				R12, #1
+		MOV			R12, #1
 		
 read		
-		LDR 			R5,=LPC4088QSB_P2 ; pointer to base reg of port2
-		LDR 			R3,=bit10 
-
-		LDR				R3,[R5,#PIN_REG_OFFSET]
-		AND				R4, R4, R3
-		CMP				R4, #1
+		LDR 			R0,=LPC4088QSB_P2 ; pointer to base reg of port2
+		LDR			R3,[R0,#PIN_REG_OFFSET]
+		LDR 			R4, bit10 
+		ANDS			R4, R3	; set Z flag (0 indicates pressed)
 		
-		BEQ read
-		BNE pressed
+		BNE read	; 1
+		BEQ pressed 	; 0
 		
 pressed
-		CMP				R12, #1
-		BEQ turnoff		;if true, turn off LED '1'
-		BNE turnon		;if false, turn on LED '0'
+		CMP			R12, #1
+		BEQ turnoff		; if true, turn off LED '1'
+		BNE turnon		; if false, turn on LED '0'
 	
 turnon
-		MOV				R12, #1
+		MOV			R12, #1
 
 		LDR 			R1,=LPC4088QSB_P2 ; pointer to base reg of port2
 		LDR 			R3,=bit10 ; 
@@ -81,7 +79,7 @@ turnon
 		b read		
 
 turnoff
-		MOV				R12, #0
+		MOV			R12, #0
 
 		LDR 			R1,=LPC4088QSB_P2 ; pointer to base reg of port2
 		LDR 			R3,=bit10 ; 
