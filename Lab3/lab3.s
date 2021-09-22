@@ -3,8 +3,8 @@ IOCON_P1_13 	EQU 0x4002C0B4 ; LED 3 P1[13] IOCON_P1_13 R/W 0x030 0x4002C0B4 D
 IOCON_P1_18 	EQU 0x4002C0C8 ; LED 1 P1[18] IOCON_P1_18 R/W 0x030 0x4002C0C8 D
 IOCON_P2_19	EQU 0x4002C14C ; LED 4 P2[19] IOCON_P2_19 R/W 0x030 0x4002C14C D
 	
-IOCON_P1_2 	EQU  0x4002C088
-IOCON_P2_10 	EQU  0x4002C128
+IOCON_P1_2 	EQU 0x4002C088 ; external LED - PIN 30
+IOCON_P2_10 	EQU 0x4002C128 ; user switch - PIN 23
 
 ; This is essentially Table 94 from UM10562
 LPC4088QSB_P0 	EQU 0x20098000
@@ -24,7 +24,7 @@ bit2		EQU (1 <<  2)
 bit10		EQU (1 << 10)
 bit13 		EQU (1 << 13) ; 0x00002000
 bit18 		EQU (1 << 18) ; 0x00040000
-bit19		EQU (1 << 19) ; 0x00800000
+bit19		EQU (1 << 19)
 	
 		AREA lab3, CODE, READONLY
 		ENTRY
@@ -34,23 +34,17 @@ __main
 		; setup the, IOCON, I/O configuration - default is 0x30, setup to 0x00
 		; setup for GPIO and inactive and no hysteresis
 		
-		LDR 			R1, =IOCON_P1_2
+		LDR 			R1, =IOCON_P1_2 ; ping 30 extLED
 		LDR 			R2, =0x00000000
 		STR 			R2,[R1,#0x00]
 		
 		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1
-		LDR 			R3,=bit2 ; set LED 1 port pin to output - pin 18
+		LDR 			R3,=bit2 ; set LED 1 port pin to output
 		STR 			R3,[R1,#DIR_REG_OFFSET] ; set DIRECTION bits
 		
 		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1 
 		LDR 			R3,=0x00000000 ; MSK register setting
 		STR 			R3,[R1,#MSK_REG_OFFSET] ; set MASK bits 
-		
-		; turn LED off
-		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port2
-		LDR 			R3,=bit2 ; 
-		STR 			R3,[R1,#SET_REG_OFFSET] ; set CLEAR bits - This turns ON the LED
-		bl delay
 		
 		MOV			R12, #1
 		
@@ -60,15 +54,15 @@ read
 		LDR 			R4, bit10 
 		ANDS			R4, R3	; set Z flag (0 indicates pressed)
 		
-		BNE read	; if ANDS => 1 (not pressed)
+		BNE read		; if ANDS => 1 (not pressed)
 		
 		; pressed
-		CMP			R12, #1
-		BEQ turnoff		; if true, turn off LED '1'
-		BNE turnon		; if false, turn on LED '0'
+		CMP			R12, #1	; is LED currently on (R12 = 1) or off (R12 = 0)
+		BEQ turnoff		; if on (R12=1), turn off LED '1'
+		BNE turnon		; if off (R12=0), turn on LED '0'
 	
 turnon
-		MOV			R12, #1
+		MOV			R12, #1 ; LED is now on
 
 		LDR 			R1,=LPC4088QSB_P2 ; pointer to base reg of port2
 		LDR 			R3,=bit10 ; 
@@ -78,7 +72,7 @@ turnon
 		b read		
 
 turnoff
-		MOV			R12, #0
+		MOV			R12, #0 ; led is now off
 
 		LDR 			R1,=LPC4088QSB_P2 ; pointer to base reg of port2
 		LDR 			R3,=bit10 ; 
