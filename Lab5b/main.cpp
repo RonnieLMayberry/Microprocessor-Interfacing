@@ -157,8 +157,8 @@ void count() {
 			// send each byte to LED
 			sendChar( hex[j] );
 		}
-		// wait 1/8th second between each value displayed
-		wait(.125);
+		// wait 1/32nh second between each value displayed
+		wait(.03125);
 	}
 }
 
