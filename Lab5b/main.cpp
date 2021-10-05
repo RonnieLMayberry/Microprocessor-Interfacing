@@ -164,7 +164,7 @@ void count() {
 
 void blinkDots() {
 	for (int i = 0; i <= 2; i++) {
-		sendChar('0');
+		sendChar('.');
 	}
 	wait(.125);
 	clear();
