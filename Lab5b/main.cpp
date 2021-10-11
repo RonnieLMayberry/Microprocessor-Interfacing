@@ -48,11 +48,13 @@ void sendChar(char val) {
 			// '0' ... 1 1 0 0 0 0 0 0
 			cycle(1, 2);
 			cycle(0, 6);
+			break;
 		case '1':
 			// '1' ... 1 1 1 1 1 0 0 1
 			cycle(1, 5);
 			cycle(0, 2);
 			cycle(1, 1);
+			break;
 		case '2':
 			// '2' ... 1 0 1 0 0 1 0 0
 			cycle(1, 1);
@@ -61,12 +63,14 @@ void sendChar(char val) {
 			cycle(0, 2);
 			cycle(1, 1);
 			cycle(0, 2);
+			break;
 		case '3':
 			// '3' ... 1 0 1 1 0 0 0 0
 			cycle(1, 1);
 			cycle(0, 1);
 			cycle(1, 2);
 			cycle(0, 4);
+			break;
 		case '4':
 			// '4' ... 1 0 0 1 1 0 0 1
 			cycle(1, 1);
@@ -74,6 +78,7 @@ void sendChar(char val) {
 			cycle(1, 2);
 			cycle(0, 2);
 			cycle(1, 1);
+			break;
 		case '5':
 			// '5' ... 1 0 0 1 0 0 1 0
 			cycle(1, 1);
@@ -82,43 +87,51 @@ void sendChar(char val) {
 			cycle(0, 2);
 			cycle(1, 1);
 			cycle(0, 1);
+			break;
 		case '6':
 			// '6' ... 1 0 0 0 0 0 1 0
 			cycle(1, 1);
 			cycle(0, 5);
 			cycle(1, 1);
 			cycle(0, 1);
+			break;
 		case '7':
 			// '7' ... 1 1 1 1 1 0 0 0
 			cycle(1, 5);
 			cycle(0, 3);
+			break;
 		case '8':
 			// '8' ... 1 0 0 0 0 0 0 0
 			cycle(1, 1);
 			cycle(0, 7);
+			break;
 		case '9':
 			// '9' ... 1 0 0 1 1 0 0 0
 			cycle(1, 1);
 			cycle(0, 2);
 			cycle(1, 2);
 			cycle(0, 3);
+			break;
 		case 'A':
 			// 'A' ... 1 0 0 0 1 0 0 0
 			cycle(1, 1);
 			cycle(0, 3);
 			cycle(1, 1);
 			cycle(0, 3);
+			break;
 		case 'b':
 			// 'b' ... 1 0 0 0 0 0 1 1
 			cycle(1, 1);
 			cycle(0, 5);
 			cycle(1, 2);
+			break;
 		case 'C':
 			// 'C' ... 1 1 0 0 0 1 1 0
 			cycle(1, 2);
 			cycle(0, 3);
 			cycle(1, 2);
 			cycle(0, 1);
+			break;
 		case 'd':
 			// 'd' ... 1 0 1 0 0 0 0 1
 			cycle(1, 1);
@@ -126,22 +139,26 @@ void sendChar(char val) {
 			cycle(1, 1);
 			cycle(0, 4);
 			cycle(1, 1);
+			break;
 		case 'E':
 			// 'E' ... 1 0 0 0 0 1 1 0
 			cycle(1, 1);
 			cycle(0, 4);
 			cycle(1, 2);
 			cycle(0, 1);
+			break;
 		case 'F':
 			// 'F' ... 1 0 0 0 1 1 1 0
 			cycle(1, 1);
 			cycle(0, 3);
 			cycle(1, 3);
 			cycle(0, 1);
+			break;
 		case '.':
 			// '.' ... 0 1 1 1 1 1 1 1
 			cycle(0, 1);
 			cycle(1, 7);
+			break;
 	}
 }
 
@@ -157,8 +174,8 @@ void count() {
 			// send each byte to LED
 			sendChar( hex[j] );
 		}
-		// wait 1/32nh second between each value displayed
-		wait(.03125);
+		// wait 1/8th second between each value displayed
+		wait(.125);
 	}
 }
 
