@@ -93,12 +93,6 @@ void clear() {
     operation = NULL;
 }
 
-void clearNumber() {
-    for (int i = 0; i <= 1; i++) {
-        tempNum[i] = 0;
-    }
-}
-
 void pressTimer() {
     recentlyPressed = true;
     wait(1);
@@ -280,16 +274,12 @@ void keyPress() {
             if (c == 1) {
                 c1 = 0;
                 if (r1 == 0) {
-                    //sendChar('1');
                     storeNumber(1);
                 } else if (r2 == 0) {
-                    //sendChar('4');
                     storeNumber(4);
                 } else if (r3 == 0) {
-                    //sendChar('7');
                     storeNumber(7);
                 } else if (r4 == 0) {
-                    //sendChar('0');
                     storeNumber(0);
                 }
                 c1 = 1;
@@ -297,13 +287,10 @@ void keyPress() {
             } else if (c == 2) {
                 c2 = 0;
                 if (r1 == 0) {
-                    //sendChar('2');
                     storeNumber(2);
                 } else if (r2 == 0) {
-                    //sendChar('5');
                     storeNumber(5);
                 } else if (r3 == 0) {
-                    //sendChar('8');
                     storeNumber(8);
                 } else if (r4 == 0) {
                     handleOp('F');
@@ -313,13 +300,10 @@ void keyPress() {
             } else if (c == 3) {
                 c3 = 0;
                 if (r1 == 0) {
-                    //sendChar('3');
                     storeNumber(3);
                 } else if (r2 == 0) {
-                    //sendChar('6');
                     storeNumber(6);
                 } else if (r3 == 0) {
-                    //sendChar('9');
                     storeNumber(9);
                 } else if (r4 == 0) {
                     handleOp('E');
