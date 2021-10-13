@@ -9,17 +9,39 @@ DigitalOut myCLK(p27);
 DigitalOut myData(p30);
 // DATA(A/B) is pin 30 LPC
 
+bool recentlyPressed;
+
+// Keys
+// 1 - c1r1
+// 2 - c2r1
+// 3 - c3r1
+// A - c4r1
+// 4 - c1r2
+// 5 - c2r2
+// 6 - c3r2
+// B - c4r2
+// 7 - c1r3
+// 8 - c2r3
+// 9 - c3r3
+// C - c4r3
+// 0 - c1r4
+// F - c2r4
+// E - c3r4
+// D - c4r4
+
 // Pmod KYPD out (rows)
-DigitalOut r1(p11);
-DigitalOut r2(p12);
-DigitalOut r3(p13);
-DigitalOut r4(p14);
+// pulled high
+DigitalIn r4(p11);
+DigitalIn r3(p12);
+DigitalIn r2(p13);
+DigitalIn r1(p14);
 
 // Pmod KYPD in (cols)
-DigitalIn c1(p5);
-DigitalIn c2(p6);
-DigitalIn c3(p7);
-DigitalIn c4(p8);
+// low
+DigitalOut c1(p5);
+DigitalOut c2(p6);
+DigitalOut c3(p7);
+DigitalOut c4(p8);
 
 // 7-segment order: --> 7, 6, 5, 4, 3, 2, 1
 
@@ -52,6 +74,12 @@ void clear() {
     myCLR = 0;
     wait(.1);
     myCLR = 1;
+}
+
+void pressTimer() {
+	recentlyPressed = true;
+	wait(1);
+	recentlyPressed = false;
 }
 
 // sends given value/character to the LED
@@ -175,6 +203,68 @@ void sendChar(char val) {
     }
 }
 
+void keyPress() {
+	while (!recentlyPressed) {
+		for (int c = 1; c <= 4; c++) {
+			wait(.01);
+			if (c == 1) {
+				c1 = 0;
+				if (r1 == 0) {
+					sendChar('1');
+				} else if (r2 == 0) {
+					sendChar('4');
+				} else if (r3 == 0) {
+					sendChar('7');
+				} else if (r4 == 0) {
+					sendChar('0');
+				}
+				c1 = 1;
+				wait(.025);
+			} else if (c == 2) {
+				c2 = 0;
+				if (r1 == 0) {
+					sendChar('2');
+				} else if (r2 == 0) {
+					sendChar('5');
+				} else if (r3 == 0) {
+					sendChar('8');
+				} else if (r4 == 0) {
+					sendChar('F');
+				}
+				c2 = 1;
+				wait(.025);
+			} else if (c == 3) {
+				c3 = 0;
+				if (r1 == 0) {
+					sendChar('3');
+				} else if (r2 == 0) {
+					sendChar('6');
+				} else if (r3 == 0) {
+					sendChar('9');
+				} else if (r4 == 0) {
+					sendChar('E');
+				}
+				c3 = 1;
+				wait(.025);
+			} else if (c == 4) {
+				c4 = 0;
+				if (r1 == 0) {
+					sendChar('A');
+				} else if (r2 == 0) {
+					sendChar('b');
+				} else if (r3 == 0) {
+					sendChar('C');
+				} else if (r4 == 0) {
+					sendChar('d');
+				}
+				c4 = 1;
+				wait(.025);
+			}
+		}
+		//pressTimer();
+	}
+}
+
 // showing values from 000 to FFF on LED
 void count() {
     char hex[3];
@@ -188,11 +278,12 @@ void count() {
             sendChar(hex[j]);
         }
         // wait 1/8th second between each value displayed
-        wait(.125);
+        wait(1);
     }
 }
 
-void blinkDots() {
+void blinkDots() {	
+	
     for (int i = 0; i <= 2; i++) {
         sendChar('.');
     }
@@ -201,18 +292,24 @@ void blinkDots() {
 }
 
 int main() {
+	recentlyPressed = false;
+	
     // call clear() function
     clear();
     
     // ensure clock begins at 0
     myCLK = 0;
-
+	
+	// keep cols low
+	//c1 = 0;
+	//c2 = 0;
+	//c3 = 0;
+	//c4 = 0;
+		
     // cycle( data (0 / 1), # of cycles )
     // data = 0 ... ON
     // data = 1 ... OFF
     while (true) {
-        //call count() function
-        count();
-        blinkDots();
+		keyPress();
     }
 }
