@@ -81,28 +81,28 @@ void clear() {
     myCLR = 0;
     wait(.1);
     myCLR = 1;
-	
-	for (int i = 0; i <= 1; i++) {
-		tempNum[i] = 0;
-	}
-	
-	number = 0;
-	op1 = 0;
-	result = 0;
-	index = 0;
-	operation = NULL;
+
+    for (int i = 0; i <= 1; i++) {
+        tempNum[i] = 0;
+    }
+
+    number = 0;
+    op1 = 0;
+    result = 0;
+    index = 0;
+    operation = NULL;
 }
 
 void clearNumber() {
-	for (int i = 0; i <= 1; i++) {
-		tempNum[i] = 0;
-	}
+    for (int i = 0; i <= 1; i++) {
+        tempNum[i] = 0;
+    }
 }
 
 void pressTimer() {
-	recentlyPressed = true;
-	wait(1);
-	recentlyPressed = false;
+    recentlyPressed = true;
+    wait(1);
+    recentlyPressed = false;
 }
 
 // sends given value/character to the LED
@@ -226,122 +226,123 @@ void sendChar(char val) {
     }
 }
 
-
 void storeNumber(int num) {
-	tempNum[index] = num;
-	if (index > 1) {
-		index = 0;
-	} else if (index < 1) {
-		index++;
-	}
-	number = 0;
-	for (int i = 0; i <= 1; i++) {
-		number = 10 * number * tempNum[i];
-	}
+    tempNum[index] = num;
+    if (index > 1) {
+        index = 0;
+    } else if (index < 1) {
+        index++;
+    }
+	
+    number = 0;
+    for (int i = 0; i <= 1; i++) {
+        number = 10 * number * tempNum[i];
+    }
 }
 
 void handleOp(char op) {
-	op1 = number;
-	operation = op;
+    op1 = number;
+    operation = op;
 }
 
 void performOp() {
-	switch(operation) {
-		case 'A':
-			result = op1 + number;
-			break;
-		case 'b':
-			result = op1 - number;
-			break;
-		case 'C':
-			result = op1 & number;
-			break;
-		case 'd':
-			result = op1 | number;
-			break;
-		case 'E':
-			char resultArray[3];
-			sprintf(resultArray, "%.3x", result);
-			for (int i = 0; i <= 2; i++) {
-				sendChar(resultArray[i]);
-			}
-			break;
-		case 'F':
-			clear();
-			break;
-	}
+    switch (operation) {
+    case 'A':
+        result = op1 + number;
+        break;
+    case 'b':
+        result = op1 - number;
+        break;
+    case 'C':
+        result = op1 & number;
+        break;
+    case 'd':
+        result = op1 | number;
+        break;
+    case 'E':
+        char resultArray[3];
+        sprintf(resultArray, "%.3x", result);
+		    
+        for (int i = 0; i <= 2; i++) {
+            sendChar(resultArray[i]);
+        }
+        break;
+    case 'F':
+        clear();
+        break;
+    }
 }
 
 void keyPress() {
-	while (!recentlyPressed) {
-		for (int c = 1; c <= 4; c++) {
-			wait(.01);
-			if (c == 1) {
-				c1 = 0;
-				if (r1 == 0) {
-					//sendChar('1');
-					storeNumber(1);
-				} else if (r2 == 0) {
-					//sendChar('4');
-					storeNumber(4);
-				} else if (r3 == 0) {
-					//sendChar('7');
-					storeNumber(7);
-				} else if (r4 == 0) {
-					//sendChar('0');
-					storeNumber(0);
-				}
-				c1 = 1;
-				wait(.025);
-			} else if (c == 2) {
-				c2 = 0;
-				if (r1 == 0) {
-					//sendChar('2');
-					storeNumber(2);
-				} else if (r2 == 0) {
-					//sendChar('5');
-					storeNumber(5);
-				} else if (r3 == 0) {
-					//sendChar('8');
-					storeNumber(8);
-				} else if (r4 == 0) {
-					handleOp('F');
-				}
-				c2 = 1;
-				wait(.025);
-			} else if (c == 3) {
-				c3 = 0;
-				if (r1 == 0) {
-					//sendChar('3');
-					storeNumber(3);
-				} else if (r2 == 0) {
-					//sendChar('6');
-					storeNumber(6);
-				} else if (r3 == 0) {
-					//sendChar('9');
-					storeNumber(9);
-				} else if (r4 == 0) {
-					handleOp('E');
-				}
-				c3 = 1;
-				wait(.025);
-			} else if (c == 4) {
-				c4 = 0;
-				if (r1 == 0) {
-					handleOp('A');
-				} else if (r2 == 0) {
-					handleOp('b');
-				} else if (r3 == 0) {
-					handleOp('C');
-				} else if (r4 == 0) {
-					handleOp('d');
-				}
-				c4 = 1;
-				wait(.025);
-			}
-		}
-		performOp();
-	}
+    while (!recentlyPressed) {
+        for (int c = 1; c <= 4; c++) {
+            wait(.01);
+            if (c == 1) {
+                c1 = 0;
+                if (r1 == 0) {
+                    //sendChar('1');
+                    storeNumber(1);
+                } else if (r2 == 0) {
+                    //sendChar('4');
+                    storeNumber(4);
+                } else if (r3 == 0) {
+                    //sendChar('7');
+                    storeNumber(7);
+                } else if (r4 == 0) {
+                    //sendChar('0');
+                    storeNumber(0);
+                }
+                c1 = 1;
+                wait(.025);
+            } else if (c == 2) {
+                c2 = 0;
+                if (r1 == 0) {
+                    //sendChar('2');
+                    storeNumber(2);
+                } else if (r2 == 0) {
+                    //sendChar('5');
+                    storeNumber(5);
+                } else if (r3 == 0) {
+                    //sendChar('8');
+                    storeNumber(8);
+                } else if (r4 == 0) {
+                    handleOp('F');
+                }
+                c2 = 1;
+                wait(.025);
+            } else if (c == 3) {
+                c3 = 0;
+                if (r1 == 0) {
+                    //sendChar('3');
+                    storeNumber(3);
+                } else if (r2 == 0) {
+                    //sendChar('6');
+                    storeNumber(6);
+                } else if (r3 == 0) {
+                    //sendChar('9');
+                    storeNumber(9);
+                } else if (r4 == 0) {
+                    handleOp('E');
+                }
+                c3 = 1;
+                wait(.025);
+            } else if (c == 4) {
+                c4 = 0;
+                if (r1 == 0) {
+                    handleOp('A');
+                } else if (r2 == 0) {
+                    handleOp('b');
+                } else if (r3 == 0) {
+                    handleOp('C');
+                } else if (r4 == 0) {
+                    handleOp('d');
+                }
+                c4 = 1;
+                wait(.025);
+            }
+        }
+        performOp();
+    }
 }
 
 // showing values from 000 to FFF on LED
@@ -361,8 +362,7 @@ void count() {
     }
 }
 
-void blinkDots() {	
-	
+void blinkDots() {
     for (int i = 0; i <= 2; i++) {
         sendChar('.');
     }
@@ -371,20 +371,20 @@ void blinkDots() {
 }
 
 int main() {
-	recentlyPressed = false;
-	index = 0;
-	
+    recentlyPressed = false;
+    index = 0;
+
     // call clear() function
     clearNumber();
-	clear();
-    
+    clear();
+
     // ensure clock begins at 0
     myCLK = 0;
-		
+
     // cycle( data (0 / 1), # of cycles )
     // data = 0 ... ON
     // data = 1 ... OFF
     while (true) {
-		keyPress();
+        keyPress();
     }
 }
