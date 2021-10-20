@@ -9,8 +9,6 @@ DigitalOut myCLK(p27);
 DigitalOut myData(p30);
 // DATA(A/B) is pin 30 LPC
 
-bool recentlyPressed;
-
 // Keys
 // 1 - c1r1
 // 2 - c2r1
@@ -56,11 +54,9 @@ DigitalOut c4(p8);
 // 8 - 0, 1, 2, 3, 4, 5, 6, x
 // 9 - 0, 1, 2, x, x, 5, 6, x
 
-int tempNum[2];
-int number;
-int op1;
-int result;
-int index;
+bool recentlyPressed;
+int tempNum[3];
+int number, tempVal, op1, result, index;
 char operation;
 
 // take in the data value, and the number of cycles
@@ -81,16 +77,6 @@ void clear() {
     myCLR = 0;
     wait(.1);
     myCLR = 1;
-
-    for (int i = 0; i <= 1; i++) {
-        tempNum[i] = 0;
-    }
-
-    number = 0;
-    op1 = 0;
-    result = 0;
-    index = 0;
-    operation = NULL;
 }
 
 void pressTimer() {
@@ -220,57 +206,81 @@ void sendChar(char val) {
     }
 }
 
-void storeNumber(int num) {
-    tempNum[index] = num;
-    if (index > 1) {
-        index = 0;
-    } else if (index < 1) {
-        index++;
+void clearNum() {
+	for (int i = 0; i <= 2; i++) {
+        tempNum[i] = 0;
+		sendChar(tempNum[i] + '0');
     }
+
+	number = 0;
+    index = 2;
+}
+
+void storeNumber(int num) {
+	if (index == 2) {
+		tempNum[index] = num;
+		tempVal = num;
+	} else if (index == 1) {
+		tempNum[2] = num;
+		tempNum[1] = tempVal;
+	}
 	
-    number = 0;
-    for (int i = 0; i <= 1; i++) {
-        number = 10 * number * tempNum[i];
+	for (int i = 2; i >= 0; i--) {
+		sendChar(tempNum[i] + '0');
+	}
+	
+	// convert int array to int
+	for (int i = 1; i <= 2; i++) {
+		number = 10 * number + tempNum[i];
+	}
+	
+	if (index > 1) {
+		index--;
+	} else {
+		index = 2;
+	}
+}
+
+void performOp() {
+	char resultArray[3];
+    switch (operation) {
+    case 'A':
+        result = op1 + number;
+		sprintf(resultArray, "%.3x", result);
+        break;
+    case 'b':
+        result = op1 - number;
+		sprintf(resultArray, "%.3x", result);
+        break;
+    case 'C':
+        result = op1 & number;
+		sprintf(resultArray, "%.3x", result);
+        break;
+    case 'd':
+        result = op1 | number;
+		sprintf(resultArray, "%.3x", result);
+        break;
+    case 'E':
+        for (int i = 2; i > 0; i--) {
+            sendChar(resultArray[i]);
+			printf("%d", resultArray[i]);
+        }
+        break;
+    case 'F':
+        clearNum();
+        break;
     }
 }
 
 void handleOp(char op) {
     op1 = number;
     operation = op;
-}
-
-void performOp() {
-    switch (operation) {
-    case 'A':
-        result = op1 + number;
-        break;
-    case 'b':
-        result = op1 - number;
-        break;
-    case 'C':
-        result = op1 & number;
-        break;
-    case 'd':
-        result = op1 | number;
-        break;
-    case 'E':
-        char resultArray[3];
-        sprintf(resultArray, "%.3x", result);
-		    
-        for (int i = 0; i <= 2; i++) {
-            sendChar(resultArray[i]);
-        }
-        break;
-    case 'F':
-        clear();
-        break;
-    }
+	clearNum();
 }
 
 void keyPress() {
     while (!recentlyPressed) {
         for (int c = 1; c <= 4; c++) {
-            wait(.01);
             if (c == 1) {
                 c1 = 0;
                 if (r1 == 0) {
@@ -324,9 +334,12 @@ void keyPress() {
                 c4 = 1;
                 wait(.025);
             }
+			wait(.01);
         }
-        performOp();
-    }
+    }	
+	if (operation != NULL) {
+		performOp();
+	}
 }
 
 // showing values from 000 to FFF on LED
@@ -356,11 +369,11 @@ void blinkDots() {
 
 int main() {
     recentlyPressed = false;
-    index = 0;
+	number = 0;
 
     // call clear() function
-    clearNumber();
     clear();
+	clearNum();
 
     // ensure clock begins at 0
     myCLK = 0;
