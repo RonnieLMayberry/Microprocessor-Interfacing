@@ -303,7 +303,7 @@ void keyPress() {
                                 } else if (r3 == 0) {
                                         storeNumber(8);
                                 } else if (r4 == 0) {
-                                        handleOp('F');
+                                        performOp('F');
                                 }
                                 c2 = 1;
                                 wait(.025);
