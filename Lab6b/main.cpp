@@ -57,331 +57,422 @@ DigitalOut c4(p8);
 bool recentlyPressed;
 int tempNum[3];
 int number, tempVal, op1, result, index;
+char resultArray[3];
 char operation;
 
 // take in the data value, and the number of cycles
-void cycle(int data, int num) {
-        // set data value
-        myData = data;
-        // go through 'num' cycles with set data value
-        for (int i = 1; i <= num; i++) {
-                myCLK = 1;
-                myCLK = 0;
-        }
+void cycle(int data, int num)
+{
+   	// set data value
+    myData = data;
+   	// go through 'num' cycles with set data value
+    for (int i = 1; i <= num; i++)
+    {
+        myCLK = 1;
+        myCLK = 0;
+    }
 }
 
-void clear() {
-        // reset !CLR by setting to 1, 0, then 1
-        myCLR = 1;
-        wait(.1);
-        myCLR = 0;
-        wait(.1);
-        myCLR = 1;
+void clear()
+{
+   	// reset !CLR by setting to 1, 0, then 1
+    myCLR = 1;
+    wait(.1);
+    myCLR = 0;
+    wait(.1);
+    myCLR = 1;
 }
 
-void pressTimer() {
-        recentlyPressed = true;
-        wait(1);
-        recentlyPressed = false;
+void pressTimer()
+{
+    recentlyPressed = true;
+    wait(1);
+    recentlyPressed = false;
 }
 
 // sends given value/character to the LED
-void sendChar(char val) {
-        switch (val) {
+void sendChar(char val)
+{
+    switch (val)
+    {
         case '0':
-                // '0' ... 1 1 0 0 0 0 0 0
-                cycle(1, 2);
-                cycle(0, 6);
-                break;
+           	// '0' ... 1 1 0 0 0 0 0 0
+            cycle(1, 2);
+            cycle(0, 6);
+            break;
         case '1':
-                // '1' ... 1 1 1 1 1 0 0 1
-                cycle(1, 5);
-                cycle(0, 2);
-                cycle(1, 1);
-                break;
+           	// '1' ... 1 1 1 1 1 0 0 1
+            cycle(1, 5);
+            cycle(0, 2);
+            cycle(1, 1);
+            break;
         case '2':
-                // '2' ... 1 0 1 0 0 1 0 0
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 1);
-                cycle(0, 2);
-                break;
+           	// '2' ... 1 0 1 0 0 1 0 0
+            cycle(1, 1);
+            cycle(0, 1);
+            cycle(1, 1);
+            cycle(0, 2);
+            cycle(1, 1);
+            cycle(0, 2);
+            break;
         case '3':
-                // '3' ... 1 0 1 1 0 0 0 0
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 2);
-                cycle(0, 4);
-                break;
+           	// '3' ... 1 0 1 1 0 0 0 0
+            cycle(1, 1);
+            cycle(0, 1);
+            cycle(1, 2);
+            cycle(0, 4);
+            break;
         case '4':
-                // '4' ... 1 0 0 1 1 0 0 1
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 2);
-                cycle(0, 2);
-                cycle(1, 1);
-                break;
+           	// '4' ... 1 0 0 1 1 0 0 1
+            cycle(1, 1);
+            cycle(0, 2);
+            cycle(1, 2);
+            cycle(0, 2);
+            cycle(1, 1);
+            break;
         case '5':
-                // '5' ... 1 0 0 1 0 0 1 0
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 1);
-                cycle(0, 1);
-                break;
+           	// '5' ... 1 0 0 1 0 0 1 0
+            cycle(1, 1);
+            cycle(0, 2);
+            cycle(1, 1);
+            cycle(0, 2);
+            cycle(1, 1);
+            cycle(0, 1);
+            break;
         case '6':
-                // '6' ... 1 0 0 0 0 0 1 0
-                cycle(1, 1);
-                cycle(0, 5);
-                cycle(1, 1);
-                cycle(0, 1);
-                break;
+           	// '6' ... 1 0 0 0 0 0 1 0
+            cycle(1, 1);
+            cycle(0, 5);
+            cycle(1, 1);
+            cycle(0, 1);
+            break;
         case '7':
-                // '7' ... 1 1 1 1 1 0 0 0
-                cycle(1, 5);
-                cycle(0, 3);
-                break;
+           	// '7' ... 1 1 1 1 1 0 0 0
+            cycle(1, 5);
+            cycle(0, 3);
+            break;
         case '8':
-                // '8' ... 1 0 0 0 0 0 0 0
-                cycle(1, 1);
-                cycle(0, 7);
-                break;
+           	// '8' ... 1 0 0 0 0 0 0 0
+            cycle(1, 1);
+            cycle(0, 7);
+            break;
         case '9':
-                // '9' ... 1 0 0 1 1 0 0 0
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 2);
-                cycle(0, 3);
-                break;
+           	// '9' ... 1 0 0 1 1 0 0 0
+            cycle(1, 1);
+            cycle(0, 2);
+            cycle(1, 2);
+            cycle(0, 3);
+            break;
         case 'A':
-                // 'A' ... 1 0 0 0 1 0 0 0
-                cycle(1, 1);
-                cycle(0, 3);
-                cycle(1, 1);
-                cycle(0, 3);
-                break;
+           	// 'A' ... 1 0 0 0 1 0 0 0
+            cycle(1, 1);
+            cycle(0, 3);
+            cycle(1, 1);
+            cycle(0, 3);
+            break;
         case 'b':
-                // 'b' ... 1 0 0 0 0 0 1 1
-                cycle(1, 1);
-                cycle(0, 5);
-                cycle(1, 2);
-                break;
+           	// 'b' ... 1 0 0 0 0 0 1 1
+            cycle(1, 1);
+            cycle(0, 5);
+            cycle(1, 2);
+            break;
         case 'C':
-                // 'C' ... 1 1 0 0 0 1 1 0
-                cycle(1, 2);
-                cycle(0, 3);
-                cycle(1, 2);
-                cycle(0, 1);
-                break;
+           	// 'C' ... 1 1 0 0 0 1 1 0
+            cycle(1, 2);
+            cycle(0, 3);
+            cycle(1, 2);
+            cycle(0, 1);
+            break;
         case 'd':
-                // 'd' ... 1 0 1 0 0 0 0 1
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 1);
-                break;
+           	// 'd' ... 1 0 1 0 0 0 0 1
+            cycle(1, 1);
+            cycle(0, 1);
+            cycle(1, 1);
+            cycle(0, 4);
+            cycle(1, 1);
+            break;
         case 'E':
-                // 'E' ... 1 0 0 0 0 1 1 0
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 2);
-                cycle(0, 1);
-                break;
+           	// 'E' ... 1 0 0 0 0 1 1 0
+            cycle(1, 1);
+            cycle(0, 4);
+            cycle(1, 2);
+            cycle(0, 1);
+            break;
         case 'F':
-                // 'F' ... 1 0 0 0 1 1 1 0
-                cycle(1, 1);
-                cycle(0, 3);
-                cycle(1, 3);
-                cycle(0, 1);
-                break;
+           	// 'F' ... 1 0 0 0 1 1 1 0
+            cycle(1, 1);
+            cycle(0, 3);
+            cycle(1, 3);
+            cycle(0, 1);
+            break;
         case '.':
-                // '.' ... 0 1 1 1 1 1 1 1
-                cycle(0, 1);
-                cycle(1, 7);
-                break;
-        }
+           	// '.' ... 0 1 1 1 1 1 1 1
+            cycle(0, 1);
+            cycle(1, 7);
+            break;
+    }
 }
 
-void clearNum() {
-        for (int i = 0; i <= 2; i++) {
-                tempNum[i] = 0;
-                sendChar(tempNum[i] + '0');
-        }
+void clearNum()
+{
+    for (int i = 0; i <= 2; i++)
+    {
+        tempNum[i] = 0;
+        sendChar(tempNum[i] + '0');
+    }
+	
+    number = 0;
+	index = 2;
+}
 
-        number = 0;
+void clearAll() {
+	clearNum();
+	for (int i = 0; i <= 2; i++) {
+		resultArray[i] = '0';
+	}
+}
+
+void storeNumber(int num)
+{
+	number = 0;
+    if (index == 2)
+    {
+        tempNum[index] = num;
+        tempVal = num;
+    }
+    else if (index == 1)
+    {
+        tempNum[2] = num;
+        tempNum[1] = tempVal;
+    }
+	
+	// enter 1
+	// tempNum = [ 0, 0, 1]; tempVal = 1; index => 1
+	// enter 2
+	// tempNum = [ 0, 1, 2];
+
+    for (int i = 2; i >= 0; i--)
+    {
+        sendChar(tempNum[i] + '0');
+    }
+
+   	// convert int array to int
+    for (int i = 1; i <= 2; i++)
+    {
+        number = (10 * number) + tempNum[i];
+    }
+
+    if (index > 1)
+    {
+        index--;
+    }
+    else
+    {
         index = 2;
+    }
 }
 
-void storeNumber(int num) {
-        if (index == 2) {
-                tempNum[index] = num;
-                tempVal = num;
-        } else if (index == 1) {
-                tempNum[2] = num;
-                tempNum[1] = tempVal;
-        }
-
-        for (int i = 2; i >= 0; i--) {
-                sendChar(tempNum[i] + '0');
-        }
-
-        // convert int array to int
-        for (int i = 1; i <= 2; i++) {
-                number = 10 * number + tempNum[i];
-        }
-
-        if (index > 1) {
-                index--;
-        } else {
-                index = 2;
-        }
-}
-
-void performOp() {
-        char resultArray[3];
-        switch (operation) {
+void performOp(char op)
+{
+    switch (op)
+    {
         case 'A':
-                result = op1 + number;
-                sprintf(resultArray, "%.3x", result);
-                break;
+			int tempInt[3];
+            result = op1 + number;
+			// rightmost integer in result
+			// place at tempInt[2]
+			// move index to tempInt[1]
+			// place next integer
+			// move index to tempInt[0]
+			// place next integer
+            sprintf(resultArray, "%0d", result);
+            break;
         case 'b':
-                result = op1 - number;
-                sprintf(resultArray, "%.3x", result);
-                break;
+            result = op1 - number;
+            sprintf(resultArray, "%0d", result);
+            break;
         case 'C':
-                result = op1 & number;
-                sprintf(resultArray, "%.3x", result);
-                break;
+            result = op1 & number;
+            sprintf(resultArray, "%0d", result);
+            break;
         case 'd':
-                result = op1 | number;
-                sprintf(resultArray, "%.3x", result);
-                break;
+            result = op1 | number;
+            sprintf(resultArray, "%0d", result);
+            break;
         case 'E':
-                for (int i = 2; i > 0; i--) {
-                        sendChar(resultArray[i]);
-                        printf("%d", resultArray[i]);
-                }
-                break;
+			performOp(operation);
+			clearNum();
+            for (int i = 2; i >= 0; i--)
+            {
+                sendChar(resultArray[i]);
+            }
+            break;
         case 'F':
-                clearNum();
-                break;
-        }
+            clearAll();
+            break;
+    }
 }
 
-void handleOp(char op) {
-        op1 = number;
-        operation = op;
-        clearNum();
+void handleOp(char op)
+{
+    op1 = number;
+    operation = op;
+    clearNum();
 }
 
-void keyPress() {
-        while (!recentlyPressed) {
-                for (int c = 1; c <= 4; c++) {
-                        if (c == 1) {
-                                c1 = 0;
-                                if (r1 == 0) {
-                                        storeNumber(1);
-                                } else if (r2 == 0) {
-                                        storeNumber(4);
-                                } else if (r3 == 0) {
-                                        storeNumber(7);
-                                } else if (r4 == 0) {
-                                        storeNumber(0);
-                                }
-                                c1 = 1;
-                                wait(.025);
-                        } else if (c == 2) {
-                                c2 = 0;
-                                if (r1 == 0) {
-                                        storeNumber(2);
-                                } else if (r2 == 0) {
-                                        storeNumber(5);
-                                } else if (r3 == 0) {
-                                        storeNumber(8);
-                                } else if (r4 == 0) {
-                                        performOp('F');
-                                }
-                                c2 = 1;
-                                wait(.025);
-                        } else if (c == 3) {
-                                c3 = 0;
-                                if (r1 == 0) {
-                                        storeNumber(3);
-                                } else if (r2 == 0) {
-                                        storeNumber(6);
-                                } else if (r3 == 0) {
-                                        storeNumber(9);
-                                } else if (r4 == 0) {
-                                        handleOp('E');
-                                }
-                                c3 = 1;
-                                wait(.025);
-                        } else if (c == 4) {
-                                c4 = 0;
-                                if (r1 == 0) {
-                                        handleOp('A');
-                                } else if (r2 == 0) {
-                                        handleOp('b');
-                                } else if (r3 == 0) {
-                                        handleOp('C');
-                                } else if (r4 == 0) {
-                                        handleOp('d');
-                                }
-                                c4 = 1;
-                                wait(.025);
-                        }
-                        wait(.01);
+void keyPress()
+{
+    while (!recentlyPressed)
+    {
+        for (int c = 1; c <= 4; c++)
+        {
+            if (c == 1)
+            {
+                c1 = 0;
+                if (r1 == 0)
+                {
+                    storeNumber(1);
                 }
+                else if (r2 == 0)
+                {
+                    storeNumber(4);
+                }
+                else if (r3 == 0)
+                {
+                    storeNumber(7);
+                }
+                else if (r4 == 0)
+                {
+                    storeNumber(0);
+                }
+
+                c1 = 1;
+                wait(.025);
+            }
+            else if (c == 2)
+            {
+                c2 = 0;
+                if (r1 == 0)
+                {
+                    storeNumber(2);
+                }
+                else if (r2 == 0)
+                {
+                    storeNumber(5);
+                }
+                else if (r3 == 0)
+                {
+                    storeNumber(8);
+                }
+                else if (r4 == 0)
+                {
+					performOp('F');
+                }
+
+                c2 = 1;
+                wait(.025);
+            }
+            else if (c == 3)
+            {
+                c3 = 0;
+                if (r1 == 0)
+                {
+                    storeNumber(3);
+                }
+                else if (r2 == 0)
+                {
+                    storeNumber(6);
+                }
+                else if (r3 == 0)
+                {
+                    storeNumber(9);
+                }
+                else if (r4 == 0)
+                {
+					performOp('E');
+                }
+
+                c3 = 1;
+                wait(.025);
+            }
+            else if (c == 4)
+            {
+                c4 = 0;
+                if (r1 == 0)
+                {
+                    handleOp('A');
+                }
+                else if (r2 == 0)
+                {
+                    handleOp('b');
+                }
+                else if (r3 == 0)
+                {
+                    handleOp('C');
+                }
+                else if (r4 == 0)
+                {
+                    handleOp('d');
+                }
+
+                c4 = 1;
+                wait(.025);
+            }
+
+            wait(.01);
         }
-        if (operation != NULL) {
-                performOp();
-        }
+    }
 }
 
 // showing values from 000 to FFF on LED
-void count() {
-        char hex[3];
-        // counting from 0x000 to 0xFFF
-        for (int i = 0x000; i <= 0xFFF; i++) {
-                // store 3 byte hex value in char array hex[]
-                sprintf(hex, "%.3x", i);
-                // iterate through each byte of hex value
-                for (int j = 0; j < 3; j++) {
-                        // send each byte to LED
-                        sendChar(hex[j]);
-                }
-                // wait 1/8th second between each value displayed
-                wait(1);
+void count()
+{
+    char hex[3];
+   	// counting from 0x000 to 0xFFF
+    for (int i = 0x000; i <= 0xFFF; i++)
+    {
+       	// store 3 byte hex value in char array hex[]
+        sprintf(hex, "%.3x", i);
+       	// iterate through each byte of hex value
+        for (int j = 0; j < 3; j++)
+        {
+           	// send each byte to LED
+            sendChar(hex[j]);
         }
+
+       	// wait 1/8th second between each value displayed
+        wait(1);
+    }
 }
 
-void blinkDots() {
-        for (int i = 0; i <= 2; i++) {
-                sendChar('.');
-        }
-        wait(.125);
-        clear();
+void blinkDots()
+{
+    for (int i = 0; i <= 2; i++)
+    {
+        sendChar('.');
+    }
+		
+    wait(.125);
+    clear();
 }
 
-int main() {
-        recentlyPressed = false;
-        number = 0;
+int main()
+{
+    recentlyPressed = false;
+    number = 0;
 
-        // call clear() function
-        clear();
-        clearNum();
+   	// call clear() function
+    clear();
+    clearAll();
 
-        // ensure clock begins at 0
-        myCLK = 0;
+   	// ensure clock begins at 0
+    myCLK = 0;
 
-        // cycle( data (0 / 1), # of cycles )
-        // data = 0 ... ON
-        // data = 1 ... OFF
-        while (true) {
-                keyPress();
-        }
+   	// cycle(data (0 / 1), # of cycles)
+   	// data = 0 ... ON
+   	// data = 1 ... OFF
+    while (true)
+    {
+        keyPress();
+    }
 }
