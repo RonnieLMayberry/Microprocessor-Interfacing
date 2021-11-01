@@ -219,7 +219,7 @@ void displayFahrenheit(int temp) {
 	wait(10);
 }
 
-int convertToDecimal(int binary) {
+int binToDecimal(int binary) {
 	int result = 0, remainder, base = 1;
 	while (binary > 0) {
 		remainder = binary % 10;
@@ -267,13 +267,17 @@ int main()
 		
 		// temperature is in binary
 		sprintf(tempArray, "%c", temperature);
-		// cut 4 LSBs from temperature
-		for (int i = 0; i <= 12; i++) {
+		// take first 8 bits of binary number
+		for (int i = 0; i < 8; i++) {
 			tempBinChar[i] = tempArray[i];
-			tempBinVal = (tempBinVal * 10) + tempBinChar[i];
 		}
+	    	// send 8 bits into int tempBinVal
+	    	sscanf(tempBinChar, "%d", &tempBinVal);
+	    
+	    	// todo: convert binary number to hex
+	    
 		// convert binary temperature to decimal
-		temperature = convertToDecimal(temperature);
+		temperature = binToDecimal(tempBinVal);
 		// multiply by 0.0625 to get temperature in celsius
 		temperature *= 0.0625;
 		sprintf(tempFinal, "%d", temperature);
@@ -284,7 +288,7 @@ int main()
 		wait(1);
 		clear();
 		
-        //displayCelsius(temperature);
+        	//displayCelsius(temperature);
 		//displayFahrenheit(temperature);
     }
 }
