@@ -1,5 +1,6 @@
 #include "mbed.h"
 #include "I2C.h"
+#include <stdint.h>
 
 DigitalOut myCLR(p28);
 // !CLR is pin 28 LPC
@@ -55,11 +56,9 @@ DigitalOut c4(p8);
 // 8 - 0, 1, 2, 3, 4, 5, 6, x
 // 9 - 0, 1, 2, x, x, 5, 6, x
 
-int tempBinVal = 0;
-int tempBin[12];
-char tempArray[16];
-char tempBinChar[12];
-char tempFinal[2];
+int tempHex;
+int tempBinVal;
+char tempArray[4];;
 
 // take in the data value, and the number of cycles
 void cycle(int data, int num)
@@ -82,6 +81,10 @@ void clear()
     myCLR = 0;
     wait(.1);
     myCLR = 1;
+}
+
+void clearArray() {
+	char tempArray[4] = {'0', '0', '0', '0'};
 }
 
 // sends given value/character to the LED
@@ -207,26 +210,31 @@ void sendChar(char val)
     }
 }
 
-void displayCelsius(int temp) {
-	sendChar('C');
-	// display temp
-	wait(10);
-}
-
 void displayFahrenheit(int temp) {
 	sendChar('F');
 	// convert to F and display temp
 	wait(10);
 }
 
+int pow(int base, int power) {
+	int result = 1;
+	if (power > 0) {
+		for (int i = 1; i <= power; i++) {
+			result *= base;
+		}
+		return result;
+	} else {
+		return 1;
+	}
+}
+
 int binToDecimal(int binary) {
-	int result = 0, remainder, base = 1;
+	int result = 0, remainder, power = 0;
 	while (binary > 0) {
 		remainder = binary % 10;
+		result += (remainder * pow(2, power));
 		binary /= 10;
-		result += remainder * base;
-		base *= 2;
-		base++;
+		power++;
 	}
 	return result;
 }
@@ -262,33 +270,19 @@ int main()
 		
 		i2c.start();
 		i2c.write(0x91);
-		int temperature = i2c.read(0);
+		tempBinVal = i2c.read(0);
 		i2c.stop();
 		
 		// temperature is in binary
-		sprintf(tempArray, "%c", temperature);
-		// take first 8 bits of binary number
-		for (int i = 0; i < 8; i++) {
-			tempBinChar[i] = tempArray[i];
-		}
-	    	// send 8 bits into int tempBinVal
-	    	sscanf(tempBinChar, "%d", &tempBinVal);
-	    
-	    	// todo: convert binary number to hex
-	    
-		// convert binary temperature to decimal
-		temperature = binToDecimal(tempBinVal);
-		// multiply by 0.0625 to get temperature in celsius
-		temperature *= 0.0625;
-		sprintf(tempFinal, "%d", temperature);
-		// send to LED
-		for (int i = 1; i >= 0; i--) {
-			sendChar(tempFinal[i]);
-		}
-		wait(1);
-		clear();
+		clearArray();
+		sprintf(tempArray, "%d", tempBinVal);
+		for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
+			sendChar(tempArray[i]);
+		} // 1450
 		
-        	//displayCelsius(temperature);
-		//displayFahrenheit(temperature);
+		wait(2);
+		clearArray();
+		
+		sscanf(tempArray, "%d", &tempHex);
     }
 }
