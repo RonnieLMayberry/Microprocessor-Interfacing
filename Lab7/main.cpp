@@ -60,7 +60,9 @@ int tempHex;
 int16_t tempBinVal;
 int celsius;
 int fahrenheit;
-char tempArray[4];;
+char tempArray[4];
+char tempForCut[16];
+char trimmedTemp[12]'
 
 // take in the data value, and the number of cycles
 void cycle(int data, int num)
@@ -269,6 +271,13 @@ int main()
 	    	// reads temp from DS1631 as 16 bit int?
 		tempBinVal = i2c.read(0);
 		i2c.stop();
+	    
+	    	// need to cut last 4 bits off of tempBinVal
+	    	sprintf(tempForCut, "%u", (unsigned int)celsius);
+	    	for (int i = 0; i < 13; i++) {
+			trimmedTemp[i] = tempForCut[i];
+		}
+	    	sscanf(trimmedTemp, "%u", (unsigned int)tempBinVal);
 	    
 		// get temperature in celsius
 		celsius = tempBinVal / 16; 
