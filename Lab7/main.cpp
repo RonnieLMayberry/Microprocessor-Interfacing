@@ -62,7 +62,7 @@ int celsius;
 int fahrenheit;
 char tempArray[4];
 char tempForCut[16];
-char trimmedTemp[12]'
+char trimmedTemp[12];
 
 // take in the data value, and the number of cycles
 void cycle(int data, int num)
@@ -92,7 +92,7 @@ void clearArray() {
 }
 
 // sends given value/character to the LED
-void sendChar(char val)
+void sendChar(char val) 
 {
     switch (val)
     {
@@ -237,7 +237,7 @@ int binToDecimal(int binary) {
 	return result;
 }
 
-// sensor address = 1001 000
+// sensor address = 1001 000; 0x90
 int main()
 {
    	// call clear() function
