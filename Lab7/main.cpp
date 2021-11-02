@@ -266,11 +266,14 @@ int main()
 		
 		i2c.start();
 		i2c.write(0x91);
+	    	// reads temp from DS1631 as 16 bit int?
 		tempBinVal = i2c.read(0);
 		i2c.stop();
-		
-		celsius = tempBinVal / 16; // get temperature in celsius
+	    
+		// get temperature in celsius
+		celsius = tempBinVal / 16; 
 		clearArray();
+	    	// send celsius temp to char array
 		sprintf(tempArray, "%d", celsius);
 	    	sendChar('C'); // send C for celsius
 	    	//tempArray is size 4 {0, 1, 2, 3}
@@ -278,11 +281,17 @@ int main()
 		for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
 			sendChar(tempArray[i]);
 		} // 145
-	    	
-		
+	    	wait(1);	
+	    
+	    	// convert temp to fahrenheit
+	    	fahrenheit = (celsius * (9/5)) + 32;
+	    	clearArray();
+	    	sprintf(tempArray, "%d", fahrenheit);
+	    	sendChar('F'); // send F for fahrenheit
+	    	// send first two chars of tempArray to 7Seg
+		for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
+			sendChar(tempArray[i]);	
+		}
 		wait(1);
-		clearArray();
-		
-		sscanf(tempArray, "%d", &tempHex);
     }
 }
