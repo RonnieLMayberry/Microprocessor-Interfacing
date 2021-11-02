@@ -57,7 +57,9 @@ DigitalOut c4(p8);
 // 9 - 0, 1, 2, x, x, 5, 6, x
 
 int tempHex;
-int tempBinVal;
+int16_t tempBinVal;
+int celsius;
+int fahrenheit;
 char tempArray[4];;
 
 // take in the data value, and the number of cycles
@@ -210,12 +212,6 @@ void sendChar(char val)
     }
 }
 
-void displayFahrenheit(int temp) {
-	sendChar('F');
-	// convert to F and display temp
-	wait(10);
-}
-
 int pow(int base, int power) {
 	int result = 1;
 	if (power > 0) {
@@ -273,14 +269,18 @@ int main()
 		tempBinVal = i2c.read(0);
 		i2c.stop();
 		
-		// temperature is in binary
+		celsius = tempBinVal / 16; // get temperature in celsius
 		clearArray();
-		sprintf(tempArray, "%d", tempBinVal);
+		sprintf(tempArray, "%d", celsius);
+	    	sendChar('C'); // send C for celsius
+	    	//tempArray is size 4 {0, 1, 2, 3}
+	    	// send first two chars of tempArray to 7Seg
 		for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
 			sendChar(tempArray[i]);
-		} // 1450
+		} // 145
+	    	
 		
-		wait(2);
+		wait(1);
 		clearArray();
 		
 		sscanf(tempArray, "%d", &tempHex);
