@@ -237,6 +237,38 @@ int binToDecimal(int binary) {
         return result;
 }
 
+void displayCelsius() {
+	// get temperature in celsius
+    celsius = tempBinVal / 16;
+    clearArray();
+	// send celsius temp to char array
+	sprintf(tempArray, "%2.0d", celsius);
+	sendChar('C'); // send C for celsius
+	//tempArray is size 4 {0, 1, 2, 3}
+	// send first two chars of tempArray to 7Seg
+	for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
+			sendChar(tempArray[i]);
+	} // 145
+	// if temp is single digit fill left led w/ 0
+	if (tempArray[2] == 0) {
+		sendChar('0');
+	}
+	wait(1);
+}
+
+void displayFahrenheit() {
+	// convert temp to fahrenheit
+	fahrenheit = (celsius * (9 / 5)) + 32;
+	clearArray();
+	sprintf(tempArray, "%d", fahrenheit);
+	sendChar('F'); // send F for fahrenheit
+	// send first two chars of tempArray to 7Seg
+	for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
+			sendChar(tempArray[i]);
+	}
+	wait(1);
+}
+
 // sensor address = 1001 000; 0x90
 int main() {
         // call clear() function
@@ -277,32 +309,7 @@ int main() {
                 //}
                 //sscanf(trimmedTemp, "%u", (unsigned int) tempBinVal);
 
-                // get temperature in celsius
-                celsius = tempBinVal / 16;
-                clearArray();
-                // send celsius temp to char array
-                sprintf(tempArray, "%2.0d", celsius);
-                sendChar('C'); // send C for celsius
-                //tempArray is size 4 {0, 1, 2, 3}
-                // send first two chars of tempArray to 7Seg
-                for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
-                        sendChar(tempArray[i]);
-                } // 145
-				// if temp is single digit fill left led w/ 0
-				if (tempArray[2] == 0) {
-					sendChar('0');
-				}
-                wait(1);
-
-                // convert temp to fahrenheit
-                fahrenheit = (celsius * (9 / 5)) + 32;
-                clearArray();
-                sprintf(tempArray, "%d", fahrenheit);
-                sendChar('F'); // send F for fahrenheit
-                // send first two chars of tempArray to 7Seg
-                for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
-                        sendChar(tempArray[i]);
-                }
-                wait(1);
+                displayCelsius();
+		displayFahrenheit();
         }
 }
