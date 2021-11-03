@@ -58,8 +58,8 @@ DigitalOut c4(p8);
 // 8 - 0, 1, 2, 3, 4, 5, 6, x
 // 9 - 0, 1, 2, x, x, 5, 6, x
 
-int tempHex;
 int16_t tempBinVal;
+int shortBin;
 int celsius;
 int fahrenheit;
 char tempArray[4];
@@ -239,77 +239,81 @@ int binToDecimal(int binary) {
 
 void displayCelsius() {
 	// get temperature in celsius
-    celsius = tempBinVal / 16;
+    //celsius = shortBin / 16;
     clearArray();
 	// send celsius temp to char array
-	sprintf(tempArray, "%2.0d", celsius);
+	sprintf(tempArray, "%2.0d", shortBin);
 	sendChar('C'); // send C for celsius
 	//tempArray is size 4 {0, 1, 2, 3}
 	// send first two chars of tempArray to 7Seg
 	for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
 			sendChar(tempArray[i]);
-	} // 145
-	// if temp is single digit fill left led w/ 0
-	if (tempArray[2] == 0) {
-		sendChar('0');
 	}
 	wait(1);
 }
 
 void displayFahrenheit() {
 	// convert temp to fahrenheit
-	fahrenheit = (celsius * (9 / 5)) + 32;
+	fahrenheit = (shortBin * 9)/5 + 32;
 	clearArray();
 	sprintf(tempArray, "%d", fahrenheit);
 	sendChar('F'); // send F for fahrenheit
 	// send first two chars of tempArray to 7Seg
-	for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
+	for (int i = sizeof(tempArray) - 2; i >= 0; i--) {
 			sendChar(tempArray[i]);
 	}
 	wait(1);
 }
 
-// sensor address = 1001 000; 0x90
+// temp sensor address = 1001 000; 0x90
+// clock sensor address = 1101 000; 0xD0
 int main() {
         // call clear() function
         clear();
 
         // ensure clock begins at 0
         myCLK = 0;
-
+			
         while (true) {
+				// TEMP SENSOR
                 // p9 - sda, p10 - scl
-                I2C i2c(p9, p10);
-                i2c.start();
-                i2c.write(0xac);
-                i2c.write(2);
-                i2c.stop();
+                I2C temp(p9, p10);
+                temp.start();
+                temp.write(0xac);
+                temp.write(2);
+                temp.stop();
 
                 // start collecting data
-                i2c.start();
-                i2c.write(0x90); // 0x90 -> write, 0x91 -> read
-                i2c.write(0x51);
-                i2c.stop();
+                temp.start();
+                temp.write(0x90); // 0x90 -> write, 0x91 -> read
+                temp.write(0x51);
+                temp.stop();
 
                 // read temp data
-                i2c.start();
-                i2c.write(0x90);
-                i2c.write(0xaa);
+                temp.start();
+                temp.write(0x90);
+                temp.write(0xaa);
 
-                i2c.start();
-                i2c.write(0x91);
+                temp.start();
+                temp.write(0x91);
                 // reads temp from DS1631 as 16 bit int?
-                tempBinVal = i2c.read(0);
-                i2c.stop();
-
-                // need to cut last 4 bits off of tempBinVal
-                //sprintf(tempForCut, "%u", (unsigned int) celsius);
-                //for (int i = 0; i < 13; i++) {
-                //        trimmedTemp[i] = tempForCut[i];
-                //}
-                //sscanf(trimmedTemp, "%u", (unsigned int) tempBinVal);
+                tempBinVal = temp.read(0);
+                temp.stop();
+				
+				// cut 4 MSBs from tempBinVal
+				sprintf(tempForCut, "%u", (unsigned int)tempBinVal);
+				for (int i = 0; i <= sizeof(trimmedTemp) - 1; i++) {
+					trimmedTemp[i] = tempForCut[i];
+				}
+				sscanf(trimmedTemp, "%u", &shortBin);
+				
+				
+				// CLOCK
+				// p32 - sda, p31 - scl
+				I2C clock(p32, p31);
+				
 
                 displayCelsius();
-		displayFahrenheit();
+				displayFahrenheit();
         }
 }
