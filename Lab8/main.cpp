@@ -68,9 +68,9 @@ char trimmedTemp[12];
 
 int sec, min, hour, day, date, month, year;
 // 24hr format hourW = 22; s m t w th f sa 1->7
-int8_t secW = 00000000, minW = 00111001,  hourW = 00001011,
-	   dayW = 00000110, dateW = 00011100, monthW = 00000010,
-	   yearW = 00010100;
+int8_t secW = 00000000, minW = 00111001, hourW = 00001011,
+        dayW = 00000110, dateW = 00011100, monthW = 00000010,
+        yearW = 00010100;
 
 // take in the data value, and the number of cycles
 void cycle(int data, int num) {
@@ -93,158 +93,158 @@ void clear() {
 }
 
 void sendDate(int val) {
-	switch (val) {
-		// sunday
-		case 1:
-			// n
-			cycle(1, 1);
-			cycle(0, 1);
-			cycle(1, 1);
-			cycle(0, 1);
-			cycle(1, 1);
-			cycle(0, 1);
-			cycle(1, 2);
-			
-			// U
-			cycle(1, 2);
-			cycle(0, 5);
-			cycle(1, 1);
-			
-			// S
-			cycle(1, 1);
-			cycle(0, 2);
-			cycle(1, 1);
-			cycle(0, 2);
-			cycle(1, 1);
-			cycle(0, 1);
-		
-			break;
-		// monday
-		case 2:
-			// n
-			cycle(1, 1);
-			cycle(0, 1);
-			cycle(1, 1);
-			cycle(0, 1);
-			cycle(1, 1);
-			cycle(0, 1);
-			cycle(1, 2);
-		
-			// O
-			cycle(1, 2);
-            cycle(0, 6);
-		
-			// E
-			cycle(1, 1);
-            cycle(0, 4);
-            cycle(1, 2);
-            cycle(0, 1);
-		
-			break;
-		// tuesday
-		case 3:
-			// E
-			cycle(1, 1);
-            cycle(0, 4);
-            cycle(1, 2);
-            cycle(0, 1);
-		
-			// U
-			cycle(1, 2);
-			cycle(0, 5);
-			cycle(1, 1);
-		
-			// T
-			cycle(1, 1);
-			cycle(0, 4);
-			cycle(1, 3);
-		
-			break;
-		// wednesday
-		case 4:
-			// d
-			cycle(1, 1);
-            cycle(0, 1);
-            cycle(1, 1);
-            cycle(0, 4);
-            cycle(1, 1);
-		
-			// E
-			cycle(1, 1);
-            cycle(0, 4);
-            cycle(1, 2);
-            cycle(0, 1);
-		
-			// backwards E (W)
-			cycle(1, 1);
-            cycle(0, 1);
-            cycle(1, 2);
-            cycle(0, 4);
-		
-			break;
-		// thursday
-		case 5:
-			// U
-			cycle(1, 2);
-			cycle(0, 5);
-			cycle(1, 1);
-		
-			// H
-			cycle(1, 1);
-			cycle(0, 3);
-			cycle(1, 1);
-			cycle(0, 2);
-			cycle(1, 1);
-		
-			// T
-			cycle(1, 1);
-			cycle(0, 4);
-			cycle(1, 3);
-		
-			break;
-		// friday
-		case 6:
-			// I
-			cycle(1, 5);
-            cycle(0, 2);
-            cycle(1, 1);
-		
-			// R
-			cycle(1, 2);
-			cycle(0, 2);
-			cycle(1, 2);
-			cycle(0, 2);
-		
-			// F
-			cycle(1, 1);
-            cycle(0, 3);
-            cycle(1, 3);
-            cycle(0, 1);
-		
-			break;
-		// saturday
-		case 7:	
-			// T
-			cycle(1, 1);
-			cycle(0, 4);
-			cycle(1, 3);
-		
-			// A
-			cycle(1, 1);
-            cycle(0, 3);
-            cycle(1, 1);
-            cycle(0, 3);
-		
-			// S
-			cycle(1, 1);
-			cycle(0, 2);
-			cycle(1, 1);
-			cycle(0, 2);
-			cycle(1, 1);
-			cycle(0, 1);
-		
-			break;
-	}
+        switch (val) {
+                // sunday
+        case 1:
+                // n
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 2);
+
+                // U
+                cycle(1, 2);
+                cycle(0, 5);
+                cycle(1, 1);
+
+                // S
+                cycle(1, 1);
+                cycle(0, 2);
+                cycle(1, 1);
+                cycle(0, 2);
+                cycle(1, 1);
+                cycle(0, 1);
+
+                break;
+                // monday
+        case 2:
+                // n
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 2);
+
+                // O
+                cycle(1, 2);
+                cycle(0, 6);
+
+                // E
+                cycle(1, 1);
+                cycle(0, 4);
+                cycle(1, 2);
+                cycle(0, 1);
+
+                break;
+                // tuesday
+        case 3:
+                // E
+                cycle(1, 1);
+                cycle(0, 4);
+                cycle(1, 2);
+                cycle(0, 1);
+
+                // U
+                cycle(1, 2);
+                cycle(0, 5);
+                cycle(1, 1);
+
+                // T
+                cycle(1, 1);
+                cycle(0, 4);
+                cycle(1, 3);
+
+                break;
+                // wednesday
+        case 4:
+                // d
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 1);
+                cycle(0, 4);
+                cycle(1, 1);
+
+                // E
+                cycle(1, 1);
+                cycle(0, 4);
+                cycle(1, 2);
+                cycle(0, 1);
+
+                // backwards E (W)
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 2);
+                cycle(0, 4);
+
+                break;
+                // thursday
+        case 5:
+                // U
+                cycle(1, 2);
+                cycle(0, 5);
+                cycle(1, 1);
+
+                // H
+                cycle(1, 1);
+                cycle(0, 3);
+                cycle(1, 1);
+                cycle(0, 2);
+                cycle(1, 1);
+
+                // T
+                cycle(1, 1);
+                cycle(0, 4);
+                cycle(1, 3);
+
+                break;
+                // friday
+        case 6:
+                // I
+                cycle(1, 5);
+                cycle(0, 2);
+                cycle(1, 1);
+
+                // R
+                cycle(1, 2);
+                cycle(0, 2);
+                cycle(1, 2);
+                cycle(0, 2);
+
+                // F
+                cycle(1, 1);
+                cycle(0, 3);
+                cycle(1, 3);
+                cycle(0, 1);
+
+                break;
+                // saturday
+        case 7:
+                // T
+                cycle(1, 1);
+                cycle(0, 4);
+                cycle(1, 3);
+
+                // A
+                cycle(1, 1);
+                cycle(0, 3);
+                cycle(1, 1);
+                cycle(0, 3);
+
+                // S
+                cycle(1, 1);
+                cycle(0, 2);
+                cycle(1, 1);
+                cycle(0, 2);
+                cycle(1, 1);
+                cycle(0, 1);
+
+                break;
+        }
 }
 
 // sends given value/character to the LED
@@ -371,7 +371,7 @@ void sendChar(char val) {
 void clearArray() {
         for (int i = 0; i < 4; i++) {
                 tempArray[i] = '0';
-				sendChar('0');
+                sendChar('0');
         }
 }
 
@@ -399,131 +399,130 @@ int binToDecimal(int binary) {
 }
 
 void displayCelsius() {
-	// get temperature in celsius
-    //celsius = shortBin / 16;
-    clearArray();
-	// send celsius temp to char array
-	sprintf(tempArray, "%2.0d", shortBin);
-	sendChar('C'); // send C for celsius
-	//tempArray is size 4 {0, 1, 2, 3}
-	// send first two chars of tempArray to 7Seg
-	for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
-			sendChar(tempArray[i]);
-	}
-	wait(1);
+        // get temperature in celsius
+        //celsius = shortBin / 16;
+        clearArray();
+        // send celsius temp to char array
+        sprintf(tempArray, "%2.0d", shortBin);
+        sendChar('C'); // send C for celsius
+        //tempArray is size 4 {0, 1, 2, 3}
+        // send first two chars of tempArray to 7Seg
+        for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
+                sendChar(tempArray[i]);
+        }
+        wait(1);
 }
 
 void displayFahrenheit() {
-	// convert temp to fahrenheit
-	fahrenheit = (shortBin * 9)/5 + 32;
-	clearArray();
-	sprintf(tempArray, "%d", fahrenheit);
-	sendChar('F'); // send F for fahrenheit
-	// send first two chars of tempArray to 7Seg
-	for (int i = sizeof(tempArray) - 2; i >= 0; i--) {
-			sendChar(tempArray[i]);
-	}
-	wait(1);
+        // convert temp to fahrenheit
+        fahrenheit = (shortBin * 9) / 5 + 32;
+        clearArray();
+        sprintf(tempArray, "%d", fahrenheit);
+        sendChar('F'); // send F for fahrenheit
+        // send first two chars of tempArray to 7Seg
+        for (int i = sizeof(tempArray) - 2; i >= 0; i--) {
+                sendChar(tempArray[i]);
+        }
+        wait(1);
 }
 
 // temp sensor address = 1001 000; 0x90
 void tempSetup() {
-				// p9 - sda, p10 - scl
-                I2C temp(p9, p10);
-                temp.start();
-                temp.write(0xac);
-                temp.write(2);
-                temp.stop();
+        // p9 - sda, p10 - scl
+        I2C temp(p9, p10);
+        temp.start();
+        temp.write(0xac);
+        temp.write(2);
+        temp.stop();
 
-                // start collecting data
-                temp.start();
-                temp.write(0x90); // 0x90 -> write, 0x91 -> read
-                temp.write(0x51);
-                temp.stop();
+        // start collecting data
+        temp.start();
+        temp.write(0x90); // 0x90 -> write, 0x91 -> read
+        temp.write(0x51);
+        temp.stop();
 
-                // read temp data
-                temp.start();
-                temp.write(0x90);
-                temp.write(0xaa);
+        // read temp data
+        temp.start();
+        temp.write(0x90);
+        temp.write(0xaa);
 
-                temp.start();
-                temp.write(0x91);
-                // reads temp from DS1631 as 16 bit int?
-                tempBinVal = temp.read(0);
-                temp.stop();
-				
-				// cut 4 MSBs from tempBinVal
-				sprintf(tempForCut, "%u", (unsigned int)tempBinVal);
-				for (int i = 0; i <= sizeof(trimmedTemp) - 1; i++) {
-					trimmedTemp[i] = tempForCut[i];
-				}
-				sscanf(trimmedTemp, "%u", &shortBin);
+        temp.start();
+        temp.write(0x91);
+        // reads temp from DS1631 as 16 bit int?
+        tempBinVal = temp.read(0);
+        temp.stop();
+
+        // cut 4 MSBs from tempBinVal
+        sprintf(tempForCut, "%u", (unsigned int) tempBinVal);
+        for (int i = 0; i <= sizeof(trimmedTemp) - 1; i++) {
+                trimmedTemp[i] = tempForCut[i];
+        }
+        sscanf(trimmedTemp, "%u", & shortBin);
 }
 
 // clock sensor address = 1101 000; 0xD0
 void clockWrite() {
-				// p32 - sda, p31 - scl
-				// clear register values
-				I2C clock(p32, p31);
-				clock.start();
-				clock.write(0xD0);
-				clock.write(0x00);
-				clock.write(0x00);
-				clock.stop();
-				
-				clock.start();
-				clock.write(0xD0);
-				clock.write(0x00);
-				// write as 8bit BCD
-				clock.write(secW);
-				clock.write(minW);
-				clock.write(hourW);
-				clock.write(dayW);
-				clock.write(dateW);
-				clock.write(monthW);
-				clock.write(yearW);
-				clock.start();
-				clock.write(0xD0);
-				clock.write(0x20);
-				clock.write(0);
-				clock.stop();
+        // p32 - sda, p31 - scl
+        // clear register values
+        I2C clock(p32, p31);
+        clock.start();
+        clock.write(0xD0);
+        clock.write(0x00);
+        clock.write(0x00);
+        clock.stop();
+
+        clock.start();
+        clock.write(0xD0);
+        clock.write(0x00);
+        // write as 8bit BCD
+        clock.write(secW);
+        clock.write(minW);
+        clock.write(hourW);
+        clock.write(dayW);
+        clock.write(dateW);
+        clock.write(monthW);
+        clock.write(yearW);
+        clock.start();
+        clock.write(0xD0);
+        clock.write(0x20);
+        clock.write(0);
+        clock.stop();
 }
 
 void clockRead() {
-	I2C clock(p32, p31);
-	
-	clock.start();		// start 
-	clock.write(0xD0);	// slave ID 0xD0 (R/W bit 0)
-	clock.write(0x00);	// start reg address
-	
-	clock.start();		// "restart"
-	clock.write(0xD1);	// slave ID 0xD1 (R/W bit 1)
-	
-	// read block of data into variables
-	sec = clock.read(1);	
-	min = clock.read(1);
-	hour = clock.read(1);
-	day = clock.read(1);
-	date = clock.read(1);
-	month = clock.read(1);
-	year = clock.read(1);
-	
-	clock.stop();	// stop block read
+        I2C clock(p32, p31);
+
+        clock.start(); // start 
+        clock.write(0xD0); // slave ID 0xD0 (R/W bit 0)
+        clock.write(0x00); // start reg address
+
+        clock.start(); // "restart"
+        clock.write(0xD1); // slave ID 0xD1 (R/W bit 1)
+
+        // read block of data into variables
+        sec = clock.read(1);
+        min = clock.read(1);
+        hour = clock.read(1);
+        day = clock.read(1);
+        date = clock.read(1);
+        month = clock.read(1);
+        year = clock.read(1);
+
+        clock.stop(); // stop block read
 }
 
 void clockDisplay() {
-	// start in BCD format
-	// day of week increments at midnight
-	// 1->7; sunday->saturday
-	// hours register bit 6 is 12/24 mode select
-	// 12hr mode -> bit 5 is AM/PM bit (1 is PM)
-	// 24hr mode -> bit 5 is 2nd 10 hour bit (20-23 hrs)
-	// century bit 7 acts as year register overflow (99->00; bit7: 0 -> 1)
-	
-	sendDate(day);
-	wait(5);
-	
-	
+        // start in BCD format
+        // day of week increments at midnight
+        // 1->7; sunday->saturday
+        // hours register bit 6 is 12/24 mode select
+        // 12hr mode -> bit 5 is AM/PM bit (1 is PM)
+        // 24hr mode -> bit 5 is 2nd 10 hour bit (20-23 hrs)
+        // century bit 7 acts as year register overflow (99->00; bit7: 0 -> 1)
+
+        sendDate(day);
+        wait(5);
+
 }
 
 int main() {
@@ -532,18 +531,18 @@ int main() {
 
         // ensure clock begins at 0
         myCLK = 0;
-			
-		clockWrite(); // set time to 11:57pm, Feb 28, 2020
-	
-        while (true) {	
-				// TEMP SENSOR
+
+        clockWrite(); // set time to 11:57pm, Feb 28, 2020
+
+        while (true) {
+                // TEMP SENSOR
                 tempSetup();
-				
-				// CLOCK
-				clockRead();
-				
-				clockDisplay();
+
+                // CLOCK
+                clockRead();
+
+                clockDisplay();
                 displayCelsius();
-				displayFahrenheit();
+                displayFahrenheit();
         }
 }
