@@ -72,6 +72,10 @@ int8_t secW = 00000000, minW = 00111001, hourW = 00001011,
         dayW = 00000110, dateW = 00011100, monthW = 00000010,
         yearW = 00010100;
 
+#define ADDRTC 0xd0
+#define ACK 0
+#define NACK 1
+
 // take in the data value, and the number of cycles
 void cycle(int data, int num) {
         // set data value
@@ -466,14 +470,14 @@ void clockWrite() {
         // clear register values
         I2C clock(p32, p31);
         clock.start();
-        clock.write(0xD0);
-        clock.write(0x00);
+        clock.write(ADDRTC | 0); // write slave addr + write
+        clock.write(0x00);       // write reg addr, 1st clk reg
         clock.write(0x00);
         clock.stop();
 
         clock.start();
-        clock.write(0xD0);
-        clock.write(0x00);
+        clock.write(ADDRTC | 0); // write slave addr + write
+        clock.write(0x00);       // write reg addr, 1st clk reg
         // write as 8bit BCD
         clock.write(secW);
         clock.write(minW);
@@ -483,9 +487,10 @@ void clockWrite() {
         clock.write(monthW);
         clock.write(yearW);
         clock.start();
-        clock.write(0xD0);
-        clock.write(0x20);
-        clock.write(0);
+        clock.write(ADDRTC);    // write slave addr + write
+        clock.write(0x0e);      // write reg addr, ctrl reg
+        clock.write(0x20);      // enable osc, bbsqi
+        clock.write(0);         // clear osf, alarm flags
         clock.stop();
 }
 
@@ -493,20 +498,20 @@ void clockRead() {
         I2C clock(p32, p31);
 
         clock.start(); // start 
-        clock.write(0xD0); // slave ID 0xD0 (R/W bit 0)
+        clock.write(ADDRTC | 0); // slave ID 0xD0 (R/W bit 0)
         clock.write(0x00); // start reg address
 
         clock.start(); // "restart"
-        clock.write(0xD1); // slave ID 0xD1 (R/W bit 1)
+        clock.write(ADDRTC | 1); // slave ID 0xD1 (R/W bit 1)
 
         // read block of data into variables
-        sec = clock.read(1);
-        min = clock.read(1);
-        hour = clock.read(1);
-        day = clock.read(1);
-        date = clock.read(1);
-        month = clock.read(1);
-        year = clock.read(1);
+        sec = clock.read(ACK);  // begin at last addr in reg ptr
+        min = clock.read(ACK);
+        hour = clock.read(ACK);
+        day = clock.read(ACK);
+        date = clock.read(ACK);
+        month = clock.read(ACK);
+        year = clock.read(NACK);
 
         clock.stop(); // stop block read
 }
