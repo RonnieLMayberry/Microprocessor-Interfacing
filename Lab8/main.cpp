@@ -1,8 +1,18 @@
 #include "mbed.h"
-
 #include "I2C.h"
-
 #include <stdint.h>
+
+#define no 0
+#define yes 1
+		
+#define ADDRTC 0xD0
+#define ACK 0
+#define NACK 1
+#define pm_offset 0x20
+#define twelveHrTime 0x40
+
+#define decode_bcd(x)	( ( x >> 4 ) * 10 + ( x & 0x0F ) )
+#define encode_bcd(x)	( ( ( (x / 10) & 0x0F ) << 4 ) + (x % 10) )
 
 DigitalOut myCLR(p28);
 // !CLR is pin 28 LPC
@@ -58,24 +68,23 @@ DigitalOut c4(p8);
 // 8 - 0, 1, 2, 3, 4, 5, 6, x
 // 9 - 0, 1, 2, x, x, 5, 6, x
 
-int16_t tempBinVal;
+int16_t i2cBinVal;
 int shortBin;
 int celsius;
 int fahrenheit;
-char tempArray[4];
-char tempForCut[16];
-char trimmedTemp[12];
+char i2cArray[4];
+char i2cForCut[16];
+char trimmedi2c[12];
+
+I2C i2c(p9, p10);
 
 int sec, min, hour, day, date, month, year;
 // 24hr format hourW = 22; s m t w th f sa 1->7
-int8_t secW = 00000000, minW = 00111001, hourW = 00001011,
-        dayW = 00000110, dateW = 00011100, monthW = 00000010,
-        yearW = 00010100;
-
-#define ADDRTC 0xd0
-#define ACK 0
-#define NACK 1
-
+// Feb 28, 2020 -> 11:57pm, friday (dayW = 0x6)
+int secW = 0x00, minW = 0x57, hourW = 0x11 + pm_offset + twelveHrTime, // 0101 0001 0x51, hour 11(+0x60 for PM)
+    dayW = 0x06, dateW = 0x28, monthW = 0x02,
+    yearW = 0x20;
+		
 // take in the data value, and the number of cycles
 void cycle(int data, int num) {
         // set data value
@@ -96,178 +105,29 @@ void clear() {
         myCLR = 1;
 }
 
-void sendDate(int val) {
-        switch (val) {
-                // sunday
-        case 1:
-                // n
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 2);
-
-                // U
-                cycle(1, 2);
-                cycle(0, 5);
-                cycle(1, 1);
-
-                // S
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 1);
-                cycle(0, 1);
-
-                break;
-                // monday
-        case 2:
-                // n
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 2);
-
-                // O
-                cycle(1, 2);
-                cycle(0, 6);
-
-                // E
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 2);
-                cycle(0, 1);
-
-                break;
-                // tuesday
-        case 3:
-                // E
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 2);
-                cycle(0, 1);
-
-                // U
-                cycle(1, 2);
-                cycle(0, 5);
-                cycle(1, 1);
-
-                // T
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 3);
-
-                break;
-                // wednesday
-        case 4:
-                // d
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 1);
-
-                // E
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 2);
-                cycle(0, 1);
-
-                // backwards E (W)
-                cycle(1, 1);
-                cycle(0, 1);
-                cycle(1, 2);
-                cycle(0, 4);
-
-                break;
-                // thursday
-        case 5:
-                // U
-                cycle(1, 2);
-                cycle(0, 5);
-                cycle(1, 1);
-
-                // H
-                cycle(1, 1);
-                cycle(0, 3);
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 1);
-
-                // T
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 3);
-
-                break;
-                // friday
-        case 6:
-                // I
-                cycle(1, 5);
-                cycle(0, 2);
-                cycle(1, 1);
-
-                // R
-                cycle(1, 2);
-                cycle(0, 2);
-                cycle(1, 2);
-                cycle(0, 2);
-
-                // F
-                cycle(1, 1);
-                cycle(0, 3);
-                cycle(1, 3);
-                cycle(0, 1);
-
-                break;
-                // saturday
-        case 7:
-                // T
-                cycle(1, 1);
-                cycle(0, 4);
-                cycle(1, 3);
-
-                // A
-                cycle(1, 1);
-                cycle(0, 3);
-                cycle(1, 1);
-                cycle(0, 3);
-
-                // S
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 1);
-                cycle(0, 2);
-                cycle(1, 1);
-                cycle(0, 1);
-
-                break;
-        }
-}
-
 // sends given value/character to the LED
-void sendChar(char val) {
+void sendChar(char val, int endPeriod) {
+	// endPeriod => 1 is on, 0 is off
+	// tells the program whether the character should
+	// have a period at the end
+	endPeriod = !endPeriod;
         switch (val) {
         case '0':
-                // '0' ... 1 1 0 0 0 0 0 0
-                cycle(1, 2);
+                // '0' ... endPeriod 1 0 0 0 0 0 0
+		cycle(endPeriod, 1);
+                cycle(1, 1);
                 cycle(0, 6);
                 break;
         case '1':
-                // '1' ... 1 1 1 1 1 0 0 1
-                cycle(1, 5);
+                // '1' ... endPeriod 1 1 1 1 0 0 1
+		cycle(endPeriod, 1);
+                cycle(1, 4);
                 cycle(0, 2);
                 cycle(1, 1);
                 break;
         case '2':
-                // '2' ... 1 0 1 0 0 1 0 0
-                cycle(1, 1);
+                // '2' ... endPeriod 0 1 0 0 1 0 0
+                cycle(endPeriod, 1);
                 cycle(0, 1);
                 cycle(1, 1);
                 cycle(0, 2);
@@ -275,23 +135,23 @@ void sendChar(char val) {
                 cycle(0, 2);
                 break;
         case '3':
-                // '3' ... 1 0 1 1 0 0 0 0
-                cycle(1, 1);
+                // '3' ... endPeriod 0 1 1 0 0 0 0
+                cycle(endPeriod, 1);
                 cycle(0, 1);
                 cycle(1, 2);
                 cycle(0, 4);
                 break;
         case '4':
-                // '4' ... 1 0 0 1 1 0 0 1
-                cycle(1, 1);
+                // '4' ... endPeriod 0 0 1 1 0 0 1
+                cycle(endPeriod, 1);
                 cycle(0, 2);
                 cycle(1, 2);
                 cycle(0, 2);
                 cycle(1, 1);
                 break;
         case '5':
-                // '5' ... 1 0 0 1 0 0 1 0
-                cycle(1, 1);
+                // '5' ... endPeriod 0 0 1 0 0 1 0
+                cycle(endPeriod, 1);
                 cycle(0, 2);
                 cycle(1, 1);
                 cycle(0, 2);
@@ -299,83 +159,268 @@ void sendChar(char val) {
                 cycle(0, 1);
                 break;
         case '6':
-                // '6' ... 1 0 0 0 0 0 1 0
-                cycle(1, 1);
+                // '6' ... endPeriod 0 0 0 0 0 1 0
+                cycle(endPeriod, 1);
                 cycle(0, 5);
                 cycle(1, 1);
                 cycle(0, 1);
                 break;
         case '7':
-                // '7' ... 1 1 1 1 1 0 0 0
-                cycle(1, 5);
+                // '7' ... endPeriod 1 1 1 1 0 0 0
+		cycle(endPeriod, 1);
+                cycle(1, 4);
                 cycle(0, 3);
                 break;
         case '8':
-                // '8' ... 1 0 0 0 0 0 0 0
-                cycle(1, 1);
+                // '8' ... endPeriod 0 0 0 0 0 0 0
+                cycle(endPeriod, 1);
                 cycle(0, 7);
                 break;
         case '9':
-                // '9' ... 1 0 0 1 1 0 0 0
-                cycle(1, 1);
+                // '9' ... endPeriod 0 0 1 1 0 0 0
+                cycle(endPeriod, 1);
                 cycle(0, 2);
                 cycle(1, 2);
                 cycle(0, 3);
                 break;
         case 'A':
-                // 'A' ... 1 0 0 0 1 0 0 0
-                cycle(1, 1);
+                // 'A' ... endPeriod 0 0 0 1 0 0 0
+                cycle(endPeriod, 1);
                 cycle(0, 3);
                 cycle(1, 1);
                 cycle(0, 3);
                 break;
         case 'b':
-                // 'b' ... 1 0 0 0 0 0 1 1
-                cycle(1, 1);
+                // 'b' ... endPeriod 0 0 0 0 0 1 1
+                cycle(endPeriod, 1);
                 cycle(0, 5);
                 cycle(1, 2);
                 break;
         case 'C':
-                // 'C' ... 1 1 0 0 0 1 1 0
-                cycle(1, 2);
+                // 'C' ... endPeriod 1 0 0 0 1 1 0
+		cycle(endPeriod, 1);
+                cycle(1, 1);
                 cycle(0, 3);
                 cycle(1, 2);
                 cycle(0, 1);
                 break;
         case 'd':
-                // 'd' ... 1 0 1 0 0 0 0 1
-                cycle(1, 1);
+                // 'd' ... endPeriod 0 1 0 0 0 0 1
+                cycle(endPeriod, 1);
                 cycle(0, 1);
                 cycle(1, 1);
                 cycle(0, 4);
                 cycle(1, 1);
                 break;
         case 'E':
-                // 'E' ... 1 0 0 0 0 1 1 0
-                cycle(1, 1);
+                // 'E' ... endPeriod 0 0 0 0 1 1 0
+                cycle(endPeriod, 1);
                 cycle(0, 4);
                 cycle(1, 2);
                 cycle(0, 1);
                 break;
         case 'F':
-                // 'F' ... 1 0 0 0 1 1 1 0
-                cycle(1, 1);
+                // 'F' ... endPeriod 0 0 0 1 1 1 0
+                cycle(endPeriod, 1);
                 cycle(0, 3);
                 cycle(1, 3);
                 cycle(0, 1);
                 break;
-        case '.':
-                // '.' ... 0 1 1 1 1 1 1 1
+	case 'H':
+		// H
+                cycle(endPeriod, 1);
+                cycle(0, 3);
+                cycle(1, 1);
+                cycle(0, 2);
+                cycle(1, 1);
+		break;
+	case 'I':
+		// I
+                cycle(endPeriod, 1);
+                cycle(1, 4);
+                cycle(0, 2);
+                cycle(1, 1);
+                break;
+	case 'n':
+		// n
+                cycle(endPeriod, 1);
                 cycle(0, 1);
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 1);
+                cycle(0, 1);
+                cycle(1, 2);
+		break;
+	case 'O':
+		// O
+                cycle(endPeriod, 1);
+		cycle(1, 1);
+                cycle(0, 6);
+		break;
+	case 'r':
+		// r
+                cycle(endPeriod, 1);
+		cycle(1, 1);
+                cycle(0, 2);
+                cycle(1, 2);
+                cycle(0, 2);
+		break;
+	case 'S':
+		// S
+                cycle(endPeriod, 1);
+                cycle(0, 2);
+                cycle(1, 1);
+                cycle(0, 2);
+                cycle(1, 1);
+                cycle(0, 1);
+		break;
+	case 'T':
+		// T
+                cycle(endPeriod, 1);
+                cycle(0, 4);
+                cycle(1, 3);
+		break;
+	case 'U':
+		// U
+                cycle(endPeriod, 1);
+		cycle(1, 1);
+                cycle(0, 5);
+                cycle(1, 1);
+		break;
+	case 'W':
+		// W
+                cycle(endPeriod, 1);
+                cycle(0, 1);
+                cycle(1, 2);
+                cycle(0, 4);
+                break;
+        case '.':
+                // '.' ... endPeriod 1 1 1 1 1 1 1
+		endPeriod = 0; // no matter what this prints a period
+                cycle(endPeriod, 1);
                 cycle(1, 7);
                 break;
+	// represents a single quote
+	case '#':
+		// ''' ... endPeriod 1 1 1 1 1 0 1
+		cycle(endPeriod, 1);
+		cycle(1, 5);
+		cycle(0, 1);
+		cycle(1, 1);
+		break;
+	case '"':
+		// '"' ... endPeriod 1 0 1 1 1 0 1
+		cycle(endPeriod, 1);
+		cycle(1, 1);
+		cycle(0, 1);
+		cycle(1, 3);
+		cycle(0, 1);
+		cycle(1, 1);
+		break;
         }
 }
 
+void sendDate(int val) {
+        switch (val) {
+        // sunday
+        case 0x01:
+                // n
+                sendChar('n', no);
+
+                // U
+                sendChar('U', no);
+
+                // S
+                sendChar('S', no);
+
+                break;
+        // monday
+        case 0x02:
+                // n
+                sendChar('n', no);
+
+                // O
+                sendChar('O', no);
+
+                // E
+                sendChar('E', no);
+
+                break;
+        // tuesday
+        case 0x03:
+                // E
+                sendChar('E', no);
+
+                // U
+                sendChar('U', no);
+
+                // T
+                sendChar('T', no);
+
+                break;
+        // wednesday
+        case 0x04:
+                // d
+                sendChar('d', no);
+
+                // E
+                sendChar('E', no);
+
+                // backwards E (W)
+                sendChar('W', no);
+
+                break;
+        // thursday
+        case 0x05:
+                // U
+                sendChar('U', no);
+
+                // H
+                sendChar('H', no);
+
+                // T
+                sendChar('T', no);
+
+                break;
+        // friday
+        case 0x06:
+                // I
+                sendChar('I', no);
+
+                // r
+                sendChar('r', no);
+
+                // F
+                sendChar('F', no);
+
+                break;
+        // saturday
+        case 0x07:
+                // T
+                sendChar('T', no);
+
+                // A
+                sendChar('A', no);
+
+                // S
+                sendChar('S', no);
+
+                break;
+	default:
+		sendChar('.', yes);
+		sendChar('.', yes);
+		sendChar('.', yes);
+	
+		break;
+        }
+}
+
+
+
 void clearArray() {
         for (int i = 0; i < 4; i++) {
-                tempArray[i] = '0';
-                sendChar('0');
+                i2cArray[i] = '0';
+                sendChar('0', no);
         }
 }
 
@@ -403,117 +448,116 @@ int binToDecimal(int binary) {
 }
 
 void displayCelsius() {
-        // get temperature in celsius
-        //celsius = shortBin / 16;
+        // get i2cerature in celsius
         clearArray();
-        // send celsius temp to char array
-        sprintf(tempArray, "%2.0d", shortBin);
-        sendChar('C'); // send C for celsius
-        //tempArray is size 4 {0, 1, 2, 3}
-        // send first two chars of tempArray to 7Seg
-        for (int i = sizeof(tempArray) - 3; i >= 0; i--) {
-                sendChar(tempArray[i]);
+        // send celsius i2c to char array
+        sprintf(i2cArray, "%2.0d", shortBin);
+        sendChar('C', no); // send C for celsius
+        //i2cArray is size 4 {0, 1, 2, 3}
+        // send first two chars of i2cArray to 7Seg
+        for (int i = sizeof(i2cArray) - 3; i >= 0; i--) {
+                sendChar(i2cArray[i], no);
         }
         wait(1);
 }
 
 void displayFahrenheit() {
-        // convert temp to fahrenheit
+        // convert i2c to fahrenheit
         fahrenheit = (shortBin * 9) / 5 + 32;
         clearArray();
-        sprintf(tempArray, "%d", fahrenheit);
-        sendChar('F'); // send F for fahrenheit
-        // send first two chars of tempArray to 7Seg
-        for (int i = sizeof(tempArray) - 2; i >= 0; i--) {
-                sendChar(tempArray[i]);
+        sprintf(i2cArray, "%d", fahrenheit);
+        sendChar('F', no); // send F for fahrenheit
+        // send first two chars of i2cArray to 7Seg
+        for (int i = sizeof(i2cArray) - 2; i >= 0; i--) {
+                sendChar(i2cArray[i], no);
         }
         wait(1);
 }
 
-// temp sensor address = 1001 000; 0x90
+// i2c sensor address = 1001 000; 0x90
 void tempSetup() {
         // p9 - sda, p10 - scl
-        I2C temp(p9, p10);
-        temp.start();
-        temp.write(0xac);
-        temp.write(2);
-        temp.stop();
+        //I2C i2c(p9, p10);
+        i2c.start();
+        i2c.write(0xac);
+        i2c.write(2);
+        i2c.stop();
 
         // start collecting data
-        temp.start();
-        temp.write(0x90); // 0x90 -> write, 0x91 -> read
-        temp.write(0x51);
-        temp.stop();
+        i2c.start();
+        i2c.write(0x90); // 0x90 -> write, 0x91 -> read
+        i2c.write(0x51);
+        i2c.stop();
 
-        // read temp data
-        temp.start();
-        temp.write(0x90);
-        temp.write(0xaa);
+        // read i2c data
+        i2c.start();
+        i2c.write(0x90);
+        i2c.write(0xaa);
 
-        temp.start();
-        temp.write(0x91);
-        // reads temp from DS1631 as 16 bit int?
-        tempBinVal = temp.read(0);
-        temp.stop();
+        i2c.start();
+        i2c.write(0x91);
+        // reads i2c from DS1631 as 16 bit int?
+        i2cBinVal = i2c.read(0);
+        i2c.stop();
 
-        // cut 4 MSBs from tempBinVal
-        sprintf(tempForCut, "%u", (unsigned int) tempBinVal);
-        for (int i = 0; i <= sizeof(trimmedTemp) - 1; i++) {
-                trimmedTemp[i] = tempForCut[i];
+        // cut 4 MSBs from i2cBinVal
+        sprintf(i2cForCut, "%u", (unsigned int) i2cBinVal);
+        for (int i = 0; i <= sizeof(trimmedi2c) - 1; i++) {
+                trimmedi2c[i] = i2cForCut[i];
         }
-        sscanf(trimmedTemp, "%u", & shortBin);
+        sscanf(trimmedi2c, "%u", & shortBin);
 }
 
-// clock sensor address = 1101 000; 0xD0
+// #define ADDRTC 0xD0
+
+// i2c sensor address = 1101 000; 0xD0
 void clockWrite() {
         // p32 - sda, p31 - scl
         // clear register values
-        I2C clock(p32, p31);
-        clock.start();
-        clock.write(ADDRTC | 0); // write slave addr + write
-        clock.write(0x00);       // write reg addr, 1st clk reg
-        clock.write(0x00);
-        clock.stop();
+        i2c.start();
+        i2c.write(ADDRTC | 0); // write slave addr + write
+        i2c.write(0x00);       // write reg addr, 1st clk reg
+        i2c.write(0x00);
+        i2c.stop();
 
-        clock.start();
-        clock.write(ADDRTC | 0); // write slave addr + write
-        clock.write(0x00);       // write reg addr, 1st clk reg
+        i2c.start();
+        i2c.write(ADDRTC | 0); // write slave addr + write
+        i2c.write(0x00);       // write reg addr, 1st clk reg
         // write as 8bit BCD
-        clock.write(secW);
-        clock.write(minW);
-        clock.write(hourW);
-        clock.write(dayW);
-        clock.write(dateW);
-        clock.write(monthW);
-        clock.write(yearW);
-        clock.start();
-        clock.write(ADDRTC);    // write slave addr + write
-        clock.write(0x0e);      // write reg addr, ctrl reg
-        clock.write(0x20);      // enable osc, bbsqi
-        clock.write(0);         // clear osf, alarm flags
-        clock.stop();
+        i2c.write(secW); 	
+        i2c.write(minW);	// ex. 0x19 -> BCD 0001 1001 -> minute 19
+        i2c.write(hourW);
+        i2c.write(dayW);	// 0x06
+        i2c.write(dateW);
+        i2c.write(monthW);
+        i2c.write(yearW);
+        i2c.start();
+        i2c.write(ADDRTC | 0);    // write slave addr + write
+        i2c.write(0x0e);      // write reg addr, ctrl reg
+        i2c.write(0x20);      // enable osc, bbsqi
+        i2c.write(0);         // clear osf, alarm flags
+        i2c.stop();
 }
 
 void clockRead() {
-        I2C clock(p32, p31);
+        i2c.start(); // start 
+        i2c.write(ADDRTC | 0); // slave ID (R/W bit 0)
+        i2c.write(0x00); // start reg address
 
-        clock.start(); // start 
-        clock.write(ADDRTC | 0); // slave ID 0xD0 (R/W bit 0)
-        clock.write(0x00); // start reg address
-
-        clock.start(); // "restart"
-        clock.write(ADDRTC | 1); // slave ID 0xD1 (R/W bit 1)
+        i2c.start(); // "restart"
+        i2c.write(ADDRTC | 1); // slave ID (R/W bit 1)
 
         // read block of data into variables
-        sec = clock.read(ACK);  // begin at last addr in reg ptr
-        min = clock.read(ACK);
-        hour = clock.read(ACK);
-        day = clock.read(ACK);
-        date = clock.read(ACK);
-        month = clock.read(ACK);
-        year = clock.read(NACK);
+	// begin at last addr in reg ptr
+        sec = i2c.read(ACK); // 0
+        min = i2c.read(ACK); // 255
+        hour = i2c.read(ACK); // 255
+        day = i2c.read(ACK); // 255
+        date = i2c.read(ACK); // 
+        month = i2c.read(ACK);
+        year = i2c.read(NACK);
 
-        clock.stop(); // stop block read
+        i2c.stop(); // stop block read
 }
 
 void clockDisplay() {
@@ -525,28 +569,39 @@ void clockDisplay() {
         // 24hr mode -> bit 5 is 2nd 10 hour bit (20-23 hrs)
         // century bit 7 acts as year register overflow (99->00; bit7: 0 -> 1)
 
-        sendDate(day);
-        wait(5);
-
+	// starts Feb 28, 2020 -> 11:57pm, friday (dayW = 0x6)
+	sendDate(day);
+	wait(2);
+	
+	//for (int j = 1; j <= 7; j++) {
+	//	sendDate(j);
+	//	wait(1);
+	//}
+	
+	char test[3];
+	sprintf(test, "%d", day);
+	for (int i = sizeof(test); i >= 0; i--) {
+		sendChar(test[i], no);
+	}
+	wait(10);
 }
 
 int main() {
         // call clear() function
         clear();
 
-        // ensure clock begins at 0
+        // ensure i2c begins at 0
         myCLK = 0;
 
         clockWrite(); // set time to 11:57pm, Feb 28, 2020
-
+	
         while (true) {
-                // TEMP SENSOR
-                tempSetup();
-
-                // CLOCK
+                // i2c
                 clockRead();
-
                 clockDisplay();
+		
+		// i2c SENSOR
+                tempSetup();
                 displayCelsius();
                 displayFahrenheit();
         }
