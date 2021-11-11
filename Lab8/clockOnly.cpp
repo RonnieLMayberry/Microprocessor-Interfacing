@@ -5,9 +5,9 @@
 #define no 0
 #define yes 1
 		
-#define ADDRTC 0xD0
-#define ACK 0
-#define NACK 1
+#define ADDRTC 0xd0
+#define ACK 1
+#define NACK 0
 #define pm_offset 0x20
 #define twelveHrTime 0x40
 
@@ -439,20 +439,22 @@ void clockWrite() {
         i2c.start();
         i2c.write(ADDRTC | 0); // write slave addr + write
         i2c.write(0x00);       // write reg addr, 1st clk reg
-        // write as 8bit BCD
-        i2c.write(secW); 	
-        i2c.write(minW);	// ex. 0x19 -> BCD 0001 1001 -> minute 19
-        i2c.write(hourW);
+        // write as 8bit BCD in hex
+        i2c.write(secW); 	// 0x00
+        i2c.write(minW);	// 0x57
+        i2c.write(hourW);	// 0x11 + pm_offset + twelveHrTime (11PM)
         i2c.write(dayW);	// 0x06
-        i2c.write(dateW);
-        i2c.write(monthW);
-        i2c.write(yearW);
+        i2c.write(dateW);	// 0x28
+        i2c.write(monthW);	// 0x02	
+        i2c.write(yearW);	// 0x20
         i2c.start();
         i2c.write(ADDRTC | 0);    // write slave addr + write
         i2c.write(0x0e);      // write reg addr, ctrl reg
         i2c.write(0x20);      // enable osc, bbsqi
         i2c.write(0);         // clear osf, alarm flags
         i2c.stop();
+	
+	
 }
 
 void clockRead() {
@@ -472,7 +474,7 @@ void clockRead() {
         date = i2c.read(ACK); // 
         month = i2c.read(ACK);
         year = i2c.read(NACK);
-
+	
         i2c.stop(); // stop block read
 }
 
@@ -493,13 +495,6 @@ void clockDisplay() {
 	//	sendDate(j);
 	//	wait(1);
 	//}
-	
-	char test[3];
-	sprintf(test, "%d", day);
-	for (int i = sizeof(test); i >= 0; i--) {
-		sendChar(test[i], no);
-	}
-	wait(10);
 }
 
 int main() {
