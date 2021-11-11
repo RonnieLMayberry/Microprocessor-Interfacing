@@ -6,8 +6,8 @@
 #define yes 1
 		
 #define ADDRTC 0xD0
-#define ACK 0
-#define NACK 1
+#define ACK 1
+#define NACK 0
 #define pm_offset 0x20
 #define twelveHrTime 0x40
 
@@ -84,6 +84,7 @@ int sec, min, hour, day, date, month, year;
 int secW = 0x00, minW = 0x57, hourW = 0x11 + pm_offset + twelveHrTime, // 0101 0001 0x51, hour 11(+0x60 for PM)
     dayW = 0x06, dateW = 0x28, monthW = 0x02,
     yearW = 0x20;
+bool isPM;
 		
 // take in the data value, and the number of cycles
 void cycle(int data, int num) {
@@ -320,8 +321,8 @@ void sendChar(char val, int endPeriod) {
         }
 }
 
-void sendDate(int val) {
-        switch (val) {
+void sendDate() {
+        switch (day) {
         // sunday
         case 0x01:
                 // n
@@ -413,9 +414,66 @@ void sendDate(int val) {
 	
 		break;
         }
+	wait(5);
 }
 
+void sendHr() {
+	// SEND HOUR
+	// 0x11 (11AM), 0x71 (11PM)
+	// if we subtract 0x60 from hour and its nonzero, that means its PM
+	// else its AM
+	
+	if (hour - (pm_offset + twelveHrTime) > 0) {
+		isPM = true;
+		sendChar('H', yes);
+		char hrArr[2];
+		// print without pm offset and 12hr offset
+		sprintf(hrArr, "%.2x", hour - (pm_offset + twelveHrTime)); // - 0x60
+		for (int i = sizeof(hrArr) - 1; i >= 0; i--) {
+			sendChar(hrArr[i], no);
+		}
+	} else {
+		isPM = false;
+		sendChar('H', no);
+		char hrArr[2]; // 0x71 
+		// remove 12hr offset
+		sprintf(hrArr, "%.2x", hour - twelveHrTime); // - 0x40
+		for (int i = sizeof(hrArr) - 1; i >= 0; i--) {
+			sendChar(hrArr[i], no);
+		}
+	}
+	wait(2);
+}
 
+void sendMin() {
+	// SEND MINUTE
+	char minArr[2];
+	sprintf(minArr, "%.2x", min);
+	if (isPM) {
+		sendChar('#', yes);
+	} else {
+		sendChar('#', no);
+	}
+	for (int i = sizeof(minArr) - 1; i >= 0; i--) {
+		sendChar(minArr[i], no);
+	}
+	wait(2);
+}
+
+void sendSec() {
+	// SEND SECONDS
+	char secArr[2];
+	sprintf(secArr, "%.2x", sec);
+	if (isPM) {
+		sendChar('"', yes);
+	} else {
+		sendChar('"', no);
+	}
+	for (int i = sizeof(secArr) - 1; i >= 0; i--) {
+		sendChar(secArr[i], no);
+	}
+	wait(2);
+}
 
 void clearArray() {
         for (int i = 0; i < 4; i++) {
@@ -458,7 +516,7 @@ void displayCelsius() {
         for (int i = sizeof(i2cArray) - 3; i >= 0; i--) {
                 sendChar(i2cArray[i], no);
         }
-        wait(1);
+        wait(2);
 }
 
 void displayFahrenheit() {
@@ -471,11 +529,11 @@ void displayFahrenheit() {
         for (int i = sizeof(i2cArray) - 2; i >= 0; i--) {
                 sendChar(i2cArray[i], no);
         }
-        wait(1);
+        wait(2);
 }
 
 // i2c sensor address = 1001 000; 0x90
-void tempSetup() {
+void tempRead() {
         // p9 - sda, p10 - scl
         //I2C i2c(p9, p10);
         i2c.start();
@@ -507,8 +565,6 @@ void tempSetup() {
         }
         sscanf(trimmedi2c, "%u", & shortBin);
 }
-
-// #define ADDRTC 0xD0
 
 // i2c sensor address = 1101 000; 0xD0
 void clockWrite() {
@@ -569,21 +625,24 @@ void clockDisplay() {
         // 24hr mode -> bit 5 is 2nd 10 hour bit (20-23 hrs)
         // century bit 7 acts as year register overflow (99->00; bit7: 0 -> 1)
 
-	// starts Feb 28, 2020 -> 11:57pm, friday (dayW = 0x6)
-	sendDate(day);
-	wait(2);
+	// SEND DAY
+	sendDate();
 	
-	//for (int j = 1; j <= 7; j++) {
-	//	sendDate(j);
-	//	wait(1);
-	//}
+	// SEND HOUR 
+	// (must be sent before min and sec for accurate AM/PM)
+	sendHr();
 	
-	char test[3];
-	sprintf(test, "%d", day);
-	for (int i = sizeof(test); i >= 0; i--) {
-		sendChar(test[i], no);
-	}
-	wait(10);
+	// SEND MINUTE
+	sendMin();
+	
+	// SEND SECONDS
+	sendSec();
+	
+	// starts as
+	// FRI
+	// 11H.
+	// 57'.
+	// 00".
 }
 
 int main() {
@@ -601,7 +660,7 @@ int main() {
                 clockDisplay();
 		
 		// i2c SENSOR
-                tempSetup();
+                tempRead();
                 displayCelsius();
                 displayFahrenheit();
         }
