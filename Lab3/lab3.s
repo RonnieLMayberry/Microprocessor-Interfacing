@@ -45,19 +45,21 @@ __main
 		LDR 			R3,=0x00000000 ; MSK register setting
 		STR 			R3,[R1,#MSK_REG_OFFSET] ; set MASK bits 
 		
+		// positive logic, this should turn LED off
 		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1 
 		LDR 			R3,=bit2 ; MSK register setting
 		STR 			R3,[R1,#CLR_REG_OFFSET] ; set MASK bits 
 		
 		bl delay
 		
-		MOV 			R12,#0
+		// track if LED is on or off
+		MOV 			R12,#0 // start off
 		
 		b read
 		
 read
-		; setup ext led on port1_5
-		LDR 			R1, =IOCON_P0_5 ; ping 30 extLED
+		; setup ext switch port 0, p5
+		LDR 			R1, =IOCON_P0_5
 		LDR 			R2, =0x00000000
 		STR 			R2,[R1,#0x00]
 		
@@ -84,9 +86,22 @@ pressed
 		BNE			turnoff
 		
 turnon
-		LDR 			R1,=LPC4088QSB_P0
-		LDR			R3,=bit5
-		STR			R3,[R1,#SET_REG_OFFSET]
+		LDR 			R1, =IOCON_P1_2 ; ping 30 extLED
+		LDR 			R2, =0x00000000
+		STR 			R2,[R1,#0x00]
+		
+		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1
+		LDR 			R3,=bit2 ; set LED 1 port pin to output
+		STR 			R3,[R1,#DIR_REG_OFFSET] ; set DIRECTION bits
+		
+		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1 
+		LDR 			R3,=0x00000000 ; MSK register setting
+		STR 			R3,[R1,#MSK_REG_OFFSET] ; set MASK bits 
+		
+		// positive logic, this should turn LED on
+		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1 
+		LDR 			R3,=bit2 ; MSK register setting
+		STR 			R3,[R1,#SET_REG_OFFSET] ; set MASK bits 
 
 		MOV			R12,#1
 		
@@ -95,9 +110,22 @@ turnon
 		b read
 		
 turnoff
-		LDR 			R1,=LPC4088QSB_P0
-		LDR			R3,=bit5
-		STR			R3,[R1,#CLR_REG_OFFSET]
+		LDR 			R1, =IOCON_P1_2 ; ping 30 extLED
+		LDR 			R2, =0x00000000
+		STR 			R2,[R1,#0x00]
+		
+		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1
+		LDR 			R3,=bit2 ; set LED 1 port pin to output
+		STR 			R3,[R1,#DIR_REG_OFFSET] ; set DIRECTION bits
+		
+		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1 
+		LDR 			R3,=0x00000000 ; MSK register setting
+		STR 			R3,[R1,#MSK_REG_OFFSET] ; set MASK bits 
+		
+		// positive logic, this should turn LED off
+		LDR 			R1,=LPC4088QSB_P1 ; pointer to base reg of port1 
+		LDR 			R3,=bit2 ; MSK register setting
+		STR 			R3,[R1,#CLR_REG_OFFSET] ; set MASK bits 
 
 		MOV			R12,#0
 
