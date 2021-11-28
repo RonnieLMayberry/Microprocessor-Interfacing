@@ -39,20 +39,24 @@
 // -------------------------------------------------------------------------
 #define LCD_8BITMODE			0x10
 #define LCD_4BITMODE			0x00
-#define LCD_2LINE			0x08
+#define LCD_2LINE			0x08	//
 #define LCD_1LINE			0x00
-#define LCD_5x10DOTS			0x04
+#define LCD_5x10DOTS			0x04	//
 #define LCD_5x8DOTS			0x00
 
 ///*********************************************
 // Project: I2C to LCD Interface-Routine
 // Port PCF8574: 7  6  5  4  3  2  1  0
 //		D7 D6 D5 D4 BL EN RW RS
+//		-----------------------
+//		RS RW EN BL D4 D5 D6 D7
 ///*********************************************
 
 #define PCF8574T			0x27
 
 I2C i2c(p9, p10);
+// c 0x33, mode 0
+// 
 
 static unsigned char wr_lcd_mode(char c, char mode) {
 	char ret = 1;
@@ -60,7 +64,7 @@ static unsigned char wr_lcd_mode(char c, char mode) {
 	static char backlight = 8;
 	
 	if (mode == 8) {
-		backlight = (c != 0) ? 8 : 0;
+		backlight = (c != 0) ? 8 : 0; // 
 		return 0;
 	}
 	mode |= backlight;
@@ -72,7 +76,8 @@ static unsigned char wr_lcd_mode(char c, char mode) {
 	seq[4] = seq[3] & ~4;		// EN = 0, RW = 0, RS = 1
 	
 	i2c.start();
-	i2c.write(PCF8574T << 1);
+	// data reg -> instr reg, read, 
+	i2c.write(PCF8574T << 1); // 0010 0111 -> 0100 1110 (0x27 -> 0x4E)
 	uint8_t i;
 	
 	for (i = 0; i < 5; i++) {
@@ -113,8 +118,75 @@ void lcd_backlight(char on) {
 	wr_lcd_mode(on, 8);
 }
 
+void partAC() {
+	// PART A
+	for (int i = 0; i < 26; i++) {
+		lcd_data('A'+i);
+		if (i == 12) {
+			for (int j = 1; j <= 27; j++) {
+				lcd_data(' ');
+			}
+		}
+	}
+	
+	wait(2);
+	lcd_command(LCD_CLEARDISPLAY);
+	
+	// PART B
+	for (int i = 0; i < 13; i++) {
+		lcd_data('A'+i);
+		if (i == 12) {
+			for (int j = 1; j <= 7; j++) {
+				lcd_data(' ');
+			}
+		}
+	}
+	for (int i = 0; i < 13; i++) {
+		lcd_data('a'+i);
+		if (i == 12) {
+			for (int j = 1; j <= 7; j++) {
+				lcd_data(' ');
+			}
+		}
+	}
+	for (int i = 0; i < 13; i++) {
+		lcd_data('N'+i);
+		if (i == 12) {
+			for (int j = 1; j <= 7; j++) {
+				lcd_data(' ');
+			}
+		}
+	}
+	for (int i = 0; i < 13; i++) {
+		lcd_data('n'+i);
+		if (i == 12) {
+			for (int j = 1; j <= 7; j++) {
+				lcd_data(' ');
+			}
+		}
+	}
+	
+	wait(2);
+	lcd_command(LCD_CLEARDISPLAY);
+	
+	//PART C
+	for (int i = 0; i < 10; i++) {
+		lcd_data('0'+i);
+	}
+	lcd_data('.');
+	for (int i = 0; i < 29; i++) {
+		lcd_data(' ');
+	}
+	lcd_data('.');
+	for (int i = 0; i < 10; i++) {
+		lcd_data('9'-i);
+	}
+}
+
 int main() {
 	lcd_init();
+	partAC();
+	
 }
 
 // OBJECTIVE OF B:
