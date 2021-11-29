@@ -74,8 +74,8 @@
 #define encode_bcd(x)	( ( ( (x / 10) & 0x0F ) << 4 ) + (x % 10) )
 
 #define line1 1
-#define line2 2
-#define line3 3
+#define line2 3
+#define line3 2
 #define line4 4
 
 I2C i2c(p9, p10);
@@ -102,7 +102,7 @@ DigitalOut c3(p7);
 DigitalOut c4(p8);
 
 // sun mon tue wed thu fri sat, 1 -> 7
-static int twelveHr = 0, sec = 0, min = 0, hour = 0, day = 0, date = 0, month = 0, year = 0;
+static int twelveHr, sec, min, hour, day, date, month, year;
 static bool alarmTriggered = 0;
 
 // current line's characters (lines are 20 char long)
@@ -120,20 +120,20 @@ void lcd_init(void);
 void lcd_backlight(char on);
 // defined
 void sendLine(char line[], int lineNum);
-void lcdPrev(char c);
-void fillArr(char word[], char ch, int size, int choice);
+void newLine(char c);
+void prepLine(char word[], char ch, int size, int choice);
 void clearArr(void);
 void lcdIdle(void);
 void setClock(int mode);
 int normalMode(void);
 int calcMode(void);
 int getSize(int result);
-int getFromPad(int len);
-int getOneChar(void);
-int getNum(int rowNum, int colNum);
+int getInput(int len);
+int getSingleInput(void);
+int getNum(int row, int col);
 int getOpNum(void);
-int rowScan(int colNum);
-int rowPressed(void);
+int rowScan(int col);
+int getRow(void);
 void partB(void);
 
 static unsigned char wr_lcd_mode(char c, char mode) {
@@ -172,10 +172,12 @@ static unsigned char wr_lcd_mode(char c, char mode) {
 
 unsigned char lcd_command(char c) {
 	wr_lcd_mode(c, 0);
+	return 0;
 }
 
 unsigned char lcd_data(char c) {
 	wr_lcd_mode(c, 1);
+	return 0;
 }
 
 void lcd_init(void) {
@@ -196,7 +198,7 @@ void lcd_backlight(char on) {
 }
 
 void sendLine(char line[], int lineNum) {
-	int lineSize = (int)strlen(line) - 1, lineOffset; 	//** possible error strlen
+	int lineSize = (int)strlen(line), lineOffset;
 	switch (lineNum) {
 		// line 1
 		case 1:
@@ -225,23 +227,6 @@ void sendLine(char line[], int lineNum) {
 		lcd_data(line[i]);
 	}
 	
-	prevIndex = lineOffset; 				////// PREV CURSOR THING
-	
-	while (lineOffset != 0) {
-		lineOffset--;
-		lcd_command(LCD_CURSORSHIFT);
-	}
-}
-
-void lcdPrev(char c) { 						//////////////////////////
-	int lineOffset = prevIndex;
-	for (int i = 0; i < lineOffset; i++) {
-		lcd_command(0x14);
-	}
-	
-	lineOffset++;
-	lcd_data(c);
-	
 	prevIndex = lineOffset;
 	
 	while (lineOffset != 0) {
@@ -250,7 +235,24 @@ void lcdPrev(char c) { 						//////////////////////////
 	}
 }
 
-void fillArr(char word[], char ch, int size, int choice) {	/////////////////////////
+void newLine(char c) { 						//////////////////////////
+	int lineOffset = prevIndex;
+	for (int i = 0; i < lineOffset; i++) {
+		lcd_command(0x14); // effectively cursor shift?
+	}
+	
+	lineOffset++;
+	lcd_data(c);
+	
+	prevIndex = lineOffset; // next space
+	
+	while (lineOffset != 0) {
+		lineOffset--;
+		lcd_command(LCD_CURSORSHIFT);
+	}
+}
+
+void prepLine(char word[], char ch, int size, int choice) {	/////////////////////////
 	if (choice == 0) {
 		for (int i = 0; i < size - 1; i++) {
 			currentLine[arrIndex] = word[i];
@@ -306,40 +308,40 @@ void setClock(int mode) {
 		do {
 			sendLine("Hour? (HH)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			hour = getFromPad(2);
+			sendLine(">", line4);
+			hour = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (hour > 12 || hour < 1);
 		
 		do {
 			sendLine("Minute? (MM)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			min = getFromPad(2);
+			sendLine(">", line4);
+			min = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (min > 59);
 		
 		do {
 			sendLine("AM or PM? (1 or 2)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			twelveHr = getOneChar();
+			sendLine(">", line4);
+			twelveHr = getSingleInput();
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (twelveHr != 1 && twelveHr != 2);
 		
 		do {
 			sendLine("Month? (MM)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			month = getFromPad(2);
+			sendLine(">", line4);
+			month = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (month > 12 || month < 1);
 		
 		do {
 			sendLine("Day? (DD)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			date = getFromPad(2);
+			sendLine(">", line4);
+			date = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (date > 31 || date < 1);
 		
@@ -347,16 +349,16 @@ void setClock(int mode) {
 			sendLine("Weekday? (1 -> 7)", line1);
 			sendLine("(Sun->Sat)", line2);
 			sendLine("Enter:", line3);
-			sendLine(" ", line4);
-			day = getFromPad(1);
+			sendLine(">", line4);
+			day = getInput(1);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (day > 7 || day < 1);
 		
 		do {
 			sendLine("Year? (YYYY)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			year = getFromPad(4);
+			sendLine(">", line4);
+			year = getInput(4);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (year > 2099 || year < 2000);
 		
@@ -390,40 +392,40 @@ void setClock(int mode) {
 		do {
 			sendLine("Hour? (HH)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			hour = getFromPad(2);
+			sendLine(">", line4);
+			hour = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (hour > 12 || hour < 1);
 		
 		do {
 			sendLine("Minute? (MM)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			min = getFromPad(2);
+			sendLine(">", line4);
+			min = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (min > 59);
 		
 		do {
 			sendLine("AM or PM? (1 or 2)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			twelveHr = getOneChar();
+			sendLine(">", line4);
+			twelveHr = getSingleInput();
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (twelveHr != 1 && twelveHr != 2);
 		
 		do {
 			sendLine("Month? (MM)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			month = getFromPad(2);
+			sendLine(">", line4);
+			month = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (month > 12 || month < 1);
 		
 		do {
 			sendLine("Day? (DD)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			date = getFromPad(2);
+			sendLine(">", line4);
+			date = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (date > 31 || date < 1);
 		
@@ -431,16 +433,16 @@ void setClock(int mode) {
 			sendLine("Weekday? (1 -> 7)", line1);
 			sendLine("(Sun->Sat)", line2);
 			sendLine("Enter:", line3);
-			sendLine(" ", line4);
-			day = getFromPad(1);
+			sendLine(">", line4);
+			day = getInput(1);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (day > 7 || day < 1);
 		
 		do {
 			sendLine("Year? (YYYY)", line1);
 			sendLine("Enter:", line2);
-			sendLine(" ", line4);
-			year = getFromPad(4);
+			sendLine(">", line4);
+			year = getInput(4);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (year > 2099 || year < 2000);
 		
@@ -558,30 +560,30 @@ int normalMode() {
 	// HOUR
 	sprintf(forPrint, "%d", hour);
 	if (hour < 10) {
-		fillArr(forPrint, '0', size, 1);
-		fillArr(forPrint, ' ', size - 1, 0);
+		prepLine(forPrint, '0', size, 1);
+		prepLine(forPrint, ' ', size - 1, 0);
 	} else {
-		fillArr(forPrint, ' ', size, 0);
+		prepLine(forPrint, ' ', size, 0);
 	}
 	// END HOUR
 	
-	fillArr(" ", ':', 1, 1);
+	prepLine(" ", ':', 1, 1);
 	
 	// MIN
 	sprintf(forPrint, "%d", min);
 	if (min < 10) {
-		fillArr(forPrint, '0', size, 1);
-		fillArr(forPrint, ' ', size - 1, 0);
+		prepLine(forPrint, '0', size, 1);
+		prepLine(forPrint, ' ', size - 1, 0);
 	} else {
-		fillArr(forPrint, ' ', size, 0);
+		prepLine(forPrint, ' ', size, 0);
 	}
 	// END MIN
 	
 	// AM/PM
 	if (twelveHr == 1) {
-		fillArr("PM ", ' ', 3, 0);
+		prepLine("PM ", ' ', 3, 0);
 	} else {
-		fillArr("AM ", ' ', 3, 0);
+		prepLine("AM ", ' ', 3, 0);
 	}
 	// END AM/PM
 	
@@ -589,40 +591,40 @@ int normalMode() {
 	// MONTH
 	switch (month) {
 		case 1: 
-			fillArr("Jan ", ' ', 4, 0);
+			prepLine("Jan ", ' ', 4, 0);
 			break;
 		case 2: 
-			fillArr("Feb ", ' ', 4, 0);
+			prepLine("Feb ", ' ', 4, 0);
 			break;
 		case 3: 
-			fillArr("Mar ", ' ', 4, 0);
+			prepLine("Mar ", ' ', 4, 0);
 			break;
 		case 4: 
-			fillArr("Apr ", ' ', 4, 0);
+			prepLine("Apr ", ' ', 4, 0);
 			break;
 		case 5: 
-			fillArr("May ", ' ', 4, 0);
+			prepLine("May ", ' ', 4, 0);
 			break;
 		case 6: 
-			fillArr("Jun ", ' ', 4, 0);
+			prepLine("Jun ", ' ', 4, 0);
 			break;
 		case 7: 
-			fillArr("Jul ", ' ', 4, 0);
+			prepLine("Jul ", ' ', 4, 0);
 			break;
 		case 8: 
-			fillArr("Aug ", ' ', 4, 0);
+			prepLine("Aug ", ' ', 4, 0);
 			break;
 		case 9: 
-			fillArr("Sep ", ' ', 4, 0);
+			prepLine("Sep ", ' ', 4, 0);
 			break;
 		case 10: 
-			fillArr("Oct ", ' ', 4, 0);
+			prepLine("Oct ", ' ', 4, 0);
 			break;
 		case 11: 
-			fillArr("Nov ", ' ', 4, 0);
+			prepLine("Nov ", ' ', 4, 0);
 			break;
 		case 12: 
-			fillArr("Dec ", ' ', 4, 0);
+			prepLine("Dec ", ' ', 4, 0);
 			break;
 	}
 	// END MONTH
@@ -630,19 +632,19 @@ int normalMode() {
 	// DATE
 	sprintf(forPrint, "%d", date);
 	if (date < 10) {
-		fillArr(forPrint, '0', size, 1);
-		fillArr(forPrint, ' ', size - 1, 0);
+		prepLine(forPrint, '0', size, 1);
+		prepLine(forPrint, ' ', size - 1, 0);
 	} else {
-		fillArr(forPrint, ' ', size, 0);
+		prepLine(forPrint, ' ', size, 0);
 	}
 	// END DATE
 	
-	fillArr(", ", ' ', 2, 0);
+	prepLine(", ", ' ', 2, 0);
 	
 	// YEAR
 	char yearArr[5];
 	sprintf(yearArr, "%d", 2000 + year);
-	fillArr(yearArr, ' ', sizeof(yearArr), 0);
+	prepLine(yearArr, ' ', sizeof(yearArr), 0);
 	// END YEAR
 	
 	sendLine(currentLine, line2);
@@ -655,25 +657,25 @@ int normalMode() {
 	sprintf(fahArr, "%.2f", (double)fahren);
 	
 	// TEMP: C (F)
-	fillArr("Temp: ", ' ', 6, 0);
-	fillArr(celArr, ' ', size, 0);
-	fillArr(" ", 0xDF, 1, 1); // deg
-	fillArr(" ", 'C', 1, 1);
-	fillArr(" ", '(', 1, 1);
-	fillArr(fahArr, ' ', size, 0);
-	fillArr(" ", 0xDF, 1, 1);
-	fillArr(" ", 'F', 1, 1);
-	fillArr(" ", ')', 1, 1);
+	prepLine("Temp: ", ' ', 6, 0);
+	prepLine(celArr, ' ', size, 0);
+	prepLine(" ", 0xDF, 1, 1); // deg
+	prepLine(" ", 'C', 1, 1);
+	prepLine(" ", '(', 1, 1);
+	prepLine(fahArr, ' ', size, 0);
+	prepLine(" ", 0xDF, 1, 1);
+	prepLine(" ", 'F', 1, 1);
+	prepLine(" ", ')', 1, 1);
 	sendLine(currentLine, line2);
 	clearArr();
 	
 	int chr;
-	int colNum = 1;
+	int col = 1;
 	float counter = 0;
 	while (counter < 1.25f) {
-		chr = rowScan(colNum);
+		chr = rowScan(col);
 		if (chr != 0) {
-			chr = getNum(chr, colNum);
+			chr = getNum(chr, col);
 			if (chr == 15) {
 				if (alarmFlag == 1) {
 					i2c.start();
@@ -691,30 +693,30 @@ int normalMode() {
 				// ALARM HOUR
 				sprintf(forPrint, "%d", alarmHour);
 				if (alarmHour < 10) {
-					fillArr(forPrint, '0', size, 1);
-					fillArr(forPrint, ' ', size - 1, 0);
+					prepLine(forPrint, '0', size, 1);
+					prepLine(forPrint, ' ', size - 1, 0);
 				} else {
-					fillArr(forPrint, ' ', size, 0);
+					prepLine(forPrint, ' ', size, 0);
 				}
 				// END ALARM HOUR
 				
-				fillArr(" ", ':', 1, 1);
+				prepLine(" ", ':', 1, 1);
 				
 				// ALARM MIN
 				sprintf(forPrint, "%d", alarmMin);
 				if (alarmMin < 10) {
-					fillArr(forPrint, '0', size, 1);
-					fillArr(forPrint, ' ', size - 1, 0);
+					prepLine(forPrint, '0', size, 1);
+					prepLine(forPrint, ' ', size - 1, 0);
 				} else {
-					fillArr(forPrint, ' ', size, 0);
+					prepLine(forPrint, ' ', size, 0);
 				}
 				// END ALARM MIN
 				
 				// ALARM AM/PM
 				if (alarmTwelveHr == 1) {
-					fillArr("PM ", ' ', 3, 0);
+					prepLine("PM ", ' ', 3, 0);
 				} else {
-					fillArr("AM ", ' ', 3, 0);
+					prepLine("AM ", ' ', 3, 0);
 				}
 				// END ALARM AM/PM
 				
@@ -722,40 +724,40 @@ int normalMode() {
 				// MONTH
 				switch (month) {
 					case 1: 
-						fillArr("Jan ", ' ', 4, 0);
+						prepLine("Jan ", ' ', 4, 0);
 						break;
 					case 2: 
-						fillArr("Feb ", ' ', 4, 0);
+						prepLine("Feb ", ' ', 4, 0);
 						break;
 					case 3: 
-						fillArr("Mar ", ' ', 4, 0);
+						prepLine("Mar ", ' ', 4, 0);
 						break;
 					case 4: 
-						fillArr("Apr ", ' ', 4, 0);
+						prepLine("Apr ", ' ', 4, 0);
 						break;
 					case 5: 
-						fillArr("May ", ' ', 4, 0);
+						prepLine("May ", ' ', 4, 0);
 						break;
 					case 6: 
-						fillArr("Jun ", ' ', 4, 0);
+						prepLine("Jun ", ' ', 4, 0);
 						break;
 					case 7: 
-						fillArr("Jul ", ' ', 4, 0);
+						prepLine("Jul ", ' ', 4, 0);
 						break;
 					case 8: 
-						fillArr("Aug ", ' ', 4, 0);
+						prepLine("Aug ", ' ', 4, 0);
 						break;
 					case 9: 
-						fillArr("Sep ", ' ', 4, 0);
+						prepLine("Sep ", ' ', 4, 0);
 						break;
 					case 10: 
-						fillArr("Oct ", ' ', 4, 0);
+						prepLine("Oct ", ' ', 4, 0);
 						break;
 					case 11: 
-						fillArr("Nov ", ' ', 4, 0);
+						prepLine("Nov ", ' ', 4, 0);
 						break;
 					case 12: 
-						fillArr("Dec ", ' ', 4, 0);
+						prepLine("Dec ", ' ', 4, 0);
 						break;
 
 				}
@@ -764,14 +766,14 @@ int normalMode() {
 				// ALARM DATE
 				sprintf(forPrint, "%d", alarmDate);
 				if (alarmDate < 10) {
-					fillArr(forPrint, '0', size, 1);
-					fillArr(forPrint, ':', size - 1, 0);
+					prepLine(forPrint, '0', size, 1);
+					prepLine(forPrint, ':', size - 1, 0);
 				} else {
-					fillArr(forPrint, ' ', size, 0);
+					prepLine(forPrint, ' ', size, 0);
 				}
 				// END ALARM DATE
 				
-				fillArr(", ", ' ', 2, 0);
+				prepLine(", ", ' ', 2, 0);
 				
 				// YEAR
 				sprintf(yearArr, "%d", 2000 + year);
@@ -779,14 +781,14 @@ int normalMode() {
 				clearArr();
 				
 				do {
-					chr = rowScan(colNum);
+					chr = rowScan(col);
 					if (chr != 0) {
-						chr = getNum(chr, colNum);
+						chr = getNum(chr, col);
 					}
-					if (colNum == 4) {
-						colNum = 1;
+					if (col == 4) {
+						col = 1;
 					} else {
-						colNum++;
+						col++;
 					}
 					wait(0.03);
 				} while (chr != 14 && chr != 15);
@@ -799,54 +801,55 @@ int normalMode() {
 				}
 			}
 		}
-		if (colNum == 4) {
-			colNum = 1; // wrap around
+		if (col == 4) {
+			col = 1; // wrap around
 		} else {
-			colNum++; // increment through columns
+			col++; // increment through columns
 		}
 		wait(0.03);
-		counter += 0.03;
+		counter += 0.03f;
 	}
 	return 0; // reaches here when alarm flag is set
 }
 
 int calcMode() {
-	int op1, op2, opNum, result, colNum = 1;
+	int op1, op2, opNum, result, col = 1;
 	
-	op1 = getFromPad(3);
+	op1 = getInput(3);
 	result = op1;
 	
 	opNum = getOpNum();
 	
+	// E and F
 	while (opNum != 14 && opNum != 15) {
 		switch (opNum) {
-			case 10:
-				lcdPrev('+');
+			case 10: // A
+				newLine('+');
 				break;
-			case 11:
-				lcdPrev('-');
+			case 11: // B
+				newLine('-');
 				break;
-			case 12:
-				lcdPrev('*');
+			case 12: // C
+				newLine('*');
 				break;
-			case 13:
-				lcdPrev('/');
+			case 13: // D
+				newLine('/');
 				break;
 		}
 		
-		op2 = getFromPad(3);	// possibly combine switches
+		op2 = getInput(3);	// possibly combine switches
 		
 		switch (opNum) {
-			case 10:
+			case 10: // A
 				result += op2;
 				break;
-			case 11:
+			case 11: // B
 				result -= op2;
 				break;
-			case 12:
+			case 12: // C
 				result *= op2;
 				break;
-			case 13:
+			case 13: // D
 				result /= op2;
 				break;
 		}
@@ -854,39 +857,40 @@ int calcMode() {
 		opNum = getOpNum();
 	}
 	
-	// -> normal mode
+	// -> normal mode (F)
 	if (opNum == 15) {
 		lcd_command(LCD_CLEARDISPLAY);
 		return 0;
-	} else if (opNum == 14) {
+	} else if (opNum == 14) { // (E)
 		char resultArr[7];
 		sprintf(resultArr, "=%d", result);
 		sendLine(resultArr, line3);
 		wait(0.1);
-		while (rowScan(colNum) == 0) {
-			if (colNum == 4) {
-				colNum  = 1;
+		while (rowScan(col) == 0) {
+			if (col == 4) {
+				col  = 1;
 			} else {
-				colNum++;
+				col++;
 			}
 			wait(0.05);
 		}
 		lcd_command(LCD_CLEARDISPLAY);
 		return 1;
 	}
+	return 0;
 }
 
 int getSize(int result) {
-	int counter = 6, outcome = 0, startingDiv = 100000;
+	int counter = 6, output = 0, divisor = 100000;
 	
 	if (result == 0) {
 		return 3;
 	}
 	
-	while (outcome == 0) {
-		outcome = result / startingDiv;
+	while (output == 0) {
+		output = result / divisor;
 		
-		if (outcome != 0) {
+		if (output != 0) {
 			if (result < 0) {
 				return counter + 3;
 			} else {
@@ -894,63 +898,71 @@ int getSize(int result) {
 			}
 		} else {
 			counter--;
-			startingDiv /= 10;
+			divisor /= 10;
 		}
 	}
+	return 0;
 }
 
-int getFromPad(int length) {
-	int count = 0, first = 0, second = 0, third = 0, fourth = 0, num = 0, colNum = 1;
+int getInput(int length) {
+	// max value length 4
+	int index = 0, first = 0, second = 0, third = 0, fourth = 0, num = 0, col = 1;
+	
+	// 0, 0 -> 1
+	// 0, 1 -> 2
+	// 0, 2 -> 3
+	// 0, 0 -> 1
 	
 	// waits until value of length "length" is entered
 	// count keeps track of how many keys have been pressed
-	while (count < length) {
-		if (count == 0) { 
-			first = rowScan(colNum);
-			if (first != 0) {
-				first = getNum(first, colNum);
+	while (index < length) {
+		if (index == 0) { 		// if on first val
+			int row = rowScan(col);
+			if (row != 0) {
+				first = getNum(row, col);
 				if (first < 10) {
-					count++;
-					char c = first + '0';
-					lcdPrev(c);
+					index++;
+					char c = first + '0'; // int to char
+					newLine(c);
 				}
 			}
-		} else if (count == 1) {
-			second = rowScan(colNum);
-			if (second != 0) {
-				second = getNum(second, colNum);
+		} else if (index == 1) {	// if on second val
+			int row = rowScan(col);
+			if (row != 0) {
+				second = getNum(row, col);
 				if (second < 10) {
-					count++;
+					index++;
 					char c = second + '0';
-					lcdPrev(c);
+					newLine(c);
 				}
 			}
-		} else if (count == 2) {
-			third = rowScan(colNum);
-			if (third != 0) {
-				third = getNum(third, colNum);
+		} else if (index == 2) {	// if on third val
+			int row = rowScan(col);
+			if (row != 0) {
+				third = getNum(row, col);
 				if (third < 10) {
-					count++;
+					index++;
 					char c = third + '0';
-					lcdPrev(c);
+					newLine(c);
 				}
 			}
-		} else if (count == 3) {
-			fourth = rowScan(colNum);
-			if (fourth != 0) {
-				fourth = getNum(fourth, colNum);
-				if (third < 10) {
-					count++;
+		} else if (index == 3) {	// if on fourth val
+			int row = rowScan(col);
+			if (row != 0) {
+				fourth = getNum(row, col);
+				if (fourth < 10) {
+					index++;
 					char c = fourth + '0';
-					lcdPrev(c);
+					newLine(c);
 				}
 			}
 		}
 		
-		if (colNum == 4) {
-			colNum = 1;
+		// wrap keypad col
+		if (col == 4) {
+			col = 1;
 		} else {
-			colNum++;
+			col++;
 		}
 		wait(0.03);
 	}
@@ -972,8 +984,8 @@ int getFromPad(int length) {
 	return num;
 }
 
-int getOneChar() {
-	int count = 0, first = 0, colNum = 1;
+int getSingleInput() {
+	int count = 0, first = 0, col = 1;
 	char keys[16] = {
 		'0', '1', '2', '3',
 		'4', '5', '6', '7',
@@ -982,17 +994,17 @@ int getOneChar() {
 	};
 	
 	while (count < 1) {
-		first = rowScan(colNum);
+		first = rowScan(col);
 		if (first != 0) {
-			first = getNum(first, colNum);
+			first = getNum(first, col);
 			count++;
-			lcdPrev(keys[first]);
+			newLine(keys[first]);
 		}
 		
-		if (colNum == 4) {
-			colNum = 1;
+		if (col == 4) {
+			col = 1;
 		} else {
-			colNum++;
+			col++;
 		}
 		wait(0.03);
 	}
@@ -1000,58 +1012,62 @@ int getOneChar() {
 	return first;
 }
 
-int getNum(int rowNum, int colNum) {
+int getNum(int row, int col) {
+	// associating column and row number with character on keypad
 	int keyPad[4][4] = {
 		{ 1, 2,  3,  10 },
 		{ 4, 5,  6,  11 },
 		{ 7, 8,  9,  12 },
 		{ 0, 15, 14, 13 }
 	};
-	return keyPad[rowNum - 1][colNum - 1];
+	return keyPad[row - 1][col - 1];
 }
 
 int getOpNum() {
-	int op = 0, colNum = 1;
+	int op = 0, col = 1;
 	
 	while (op < 10) {
-		op = rowScan(colNum);
+		op = rowScan(col);
 		if (op != 0) {
-			op = getNum(op, colNum);
+			op = getNum(op, col);
 		}
 		
-		if (colNum == 4) {
-			colNum = 1;
+		if (col == 4) {
+			col = 1;
 		} else {
-			colNum++;
+			col++;
 		}
 		wait(0.03);
 	}
 	return op;
 }
 
-int rowScan(int colNum) {
-	int rowNum = 0;
-	if (colNum == 1) {
+int rowScan(int col) {
+	int row = 0;
+	// pull current column low
+	if (col == 1) {
 		c1 = 0;
-	} else if (colNum == 2) {
+	} else if (col == 2) {
 		c2 = 0;
-	} else if (colNum == 3) {
+	} else if (col == 3) {
 		c3 = 0;
-	} else {
+	} else if (col == 4) {
 		c4 = 0;
 	}
 	
-	rowNum = rowPressed();
+	// get row with depressed column
+	row = getRow();
 	
 	c1 = 1;
 	c2 = 1;
 	c3 = 1;
 	c4 = 1;
-	return rowNum;
+	return row;
 }
 
-int rowPressed() {
+int getRow() {
 	int num = 0;
+	
 	if (r1 == 0) {
 		num = 1;
 	} else if (r2 == 0) {
@@ -1086,11 +1102,11 @@ void partB() {
 	wait(1);
 	
 	lcd_command(LCD_CLEARDISPLAY);
-	prevIndex = 0; 	////// PREV CURSOR THING
+	prevIndex = 0;
 }
 
 int main() {
 	lcd_init();
-	partB();
+	//partB();
 	lcdIdle();
 }
