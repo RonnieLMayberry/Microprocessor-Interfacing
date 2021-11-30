@@ -265,7 +265,7 @@ void prepLine(char word[], char ch, int size, int choice) {	////////////////////
 }
 
 void clearArr() {						///////////////////////
-	sprintf(currentLine, "%d", 0);
+	sprintf(currentLine, "%c", ' ');
 	arrIndex = 0;
 }
 
@@ -554,6 +554,8 @@ int normalMode() {
 		sendLine("Alarm has expired", line1);
 	}
 	
+	lcd_command(LCD_CLEARDISPLAY);
+	
 	char forPrint[3];
 	int size = sizeof(forPrint);
 	
@@ -561,7 +563,7 @@ int normalMode() {
 	sprintf(forPrint, "%d", hour);
 	if (hour < 10) {
 		prepLine(forPrint, '0', size, 1);
-		prepLine(forPrint, ' ', size - 1, 0);
+		prepLine(forPrint, ' ', size - 1, 0);	////////////////////////////////////// ex hour 6 not 06
 	} else {
 		prepLine(forPrint, ' ', size, 0);
 	}
@@ -643,11 +645,11 @@ int normalMode() {
 	
 	// YEAR
 	char yearArr[5];
-	sprintf(yearArr, "%d", 2000 + year);
+	sprintf(yearArr, "%d", year + 2000);
 	prepLine(yearArr, ' ', sizeof(yearArr), 0);
 	// END YEAR
 	
-	sendLine(currentLine, line2);
+	sendLine(currentLine, line3);
 	
 	clearArr();
 	char celArr[5];
@@ -676,8 +678,8 @@ int normalMode() {
 		chr = rowScan(col);
 		if (chr != 0) {
 			chr = getNum(chr, col);
-			if (chr == 15) {
-				if (alarmFlag == 1) {
+			if (chr == 15) { // F
+				if (alarmFlag == 1) { // display 
 					i2c.start();
 					i2c.write(ADDRTC);
 					i2c.write(0x0F);
@@ -692,8 +694,8 @@ int normalMode() {
 				
 				// ALARM HOUR
 				sprintf(forPrint, "%d", alarmHour);
-				if (alarmHour < 10) {
-					prepLine(forPrint, '0', size, 1);
+				if (alarmHour < 10) {				///////////////////////////////////////////
+					prepLine(forPrint, '0', size, 1);	// hour fix for clock
 					prepLine(forPrint, ' ', size - 1, 0);
 				} else {
 					prepLine(forPrint, ' ', size, 0);
@@ -776,8 +778,10 @@ int normalMode() {
 				prepLine(", ", ' ', 2, 0);
 				
 				// YEAR
-				sprintf(yearArr, "%d", 2000 + year);
+				sprintf(yearArr, "%d", year + 2000);
 				sendLine(currentLine, line2);
+				// END YEAR
+				
 				clearArr();
 				
 				do {
@@ -858,7 +862,7 @@ int calcMode() {
 	}
 	
 	// -> normal mode (F)
-	if (opNum == 15) {
+	if (opNum == 15) { //////////////////////////////////////////// DOESNT SWITCH BACK
 		lcd_command(LCD_CLEARDISPLAY);
 		return 0;
 	} else if (opNum == 14) { // (E)
@@ -877,7 +881,6 @@ int calcMode() {
 		lcd_command(LCD_CLEARDISPLAY);
 		return 1;
 	}
-	return 0;
 }
 
 int getSize(int result) {
