@@ -60,12 +60,11 @@
 #define LCD_5x10DOTS			0x04
 #define LCD_5x8DOTS			0x00
 
+#define LCD_SHIFTCUSTOM			0x14
+
 // PORT
 #define PCF8574T			0x27
-
-#define no 0
-#define yes 1
-		
+	
 #define ADDRTC 0xD0
 #define ACK 1
 #define NACK 0
@@ -119,12 +118,13 @@ unsigned char lcd_data(char c);
 void lcd_init(void);
 void lcd_backlight(char on);
 // defined
+void prepLine(char word[], char ch, int size, int choice);
 void sendLine(char line[], int lineNum);
 void newLine(char c);
-void prepLine(char word[], char ch, int size, int choice);
 void clearArr(void);
 void lcdIdle(void);
 void setClock(int mode);
+void sendTime(int hour, int min, int twelveHr, int month, int date, int year);
 int normalMode(void);
 int calcMode(void);
 int getSize(int result);
@@ -197,6 +197,19 @@ void lcd_backlight(char on) {
 	wr_lcd_mode(on, 8);
 }
 
+void prepLine(char word[], char ch, int size, int choice) {	/////////////////////////
+	int size = strlen(word);
+	if (choice == 0) {
+		for (int i = 0; i < size - 1; i++) {
+			currentLine[arrIndex] = word[i];
+			arrIndex++;
+		}
+	} else {
+		currentLine[arrIndex] = ch;
+		arrIndex++;
+	}
+}
+
 void sendLine(char line[], int lineNum) {
 	int lineSize = (int)strlen(line), lineOffset;
 	switch (lineNum) {
@@ -219,7 +232,7 @@ void sendLine(char line[], int lineNum) {
 	}
 	
 	for (int i = 0; i < lineOffset; i++) {
-		lcd_command(0x14);
+		lcd_command(LCD_SHIFTCUSTOM);
 	}
 	
 	for (int i = 0; i < lineSize; i++) {
@@ -235,10 +248,10 @@ void sendLine(char line[], int lineNum) {
 	}
 }
 
-void newLine(char c) { 						//////////////////////////
+void newLine(char c) { 	
 	int lineOffset = prevIndex;
 	for (int i = 0; i < lineOffset; i++) {
-		lcd_command(0x14); // effectively cursor shift?
+		lcd_command(LCD_SHIFTCUSTOM); // effectively cursor shift?
 	}
 	
 	lineOffset++;
@@ -252,19 +265,7 @@ void newLine(char c) { 						//////////////////////////
 	}
 }
 
-void prepLine(char word[], char ch, int size, int choice) {	/////////////////////////
-	if (choice == 0) {
-		for (int i = 0; i < size - 1; i++) {
-			currentLine[arrIndex] = word[i];
-			arrIndex++;
-		}
-	} else {
-		currentLine[arrIndex] = ch;
-		arrIndex++;
-	}
-}
-
-void clearArr() {						///////////////////////
+void clearArr() {
 	sprintf(currentLine, "%c", ' ');
 	arrIndex = 0;
 }
@@ -372,7 +373,7 @@ void setClock(int mode) {
 		i2c.start();
                 i2c.write(ADDRTC);
                 i2c.write(0x00); // clock
-                i2c.write(encode_bcd(0)); // seconds
+                i2c.write(encode_bcd(0)); // 0 seconds
                 i2c.write(encode_bcd(min));
                 i2c.write(encode_bcd(hour) | twelveHr);
                 i2c.write(encode_bcd(day));
@@ -386,6 +387,8 @@ void setClock(int mode) {
                 i2c.write(0);
                 i2c.stop();
 	} else {
+		int alarmHour, alarmMin, alarmTwelveHr, alarmDate;
+		
 		sendLine("SET ALARM", line1);
 		wait(2);
 		lcd_command(LCD_CLEARDISPLAY);
@@ -393,7 +396,7 @@ void setClock(int mode) {
 			sendLine("Hour? (HH)", line1);
 			sendLine("Enter:", line2);
 			sendLine(">", line4);
-			hour = getInput(2);
+			alarmHour = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (hour > 12 || hour < 1);
 		
@@ -401,7 +404,7 @@ void setClock(int mode) {
 			sendLine("Minute? (MM)", line1);
 			sendLine("Enter:", line2);
 			sendLine(">", line4);
-			min = getInput(2);
+			alarmMin = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (min > 59);
 		
@@ -409,58 +412,33 @@ void setClock(int mode) {
 			sendLine("AM or PM? (1 or 2)", line1);
 			sendLine("Enter:", line2);
 			sendLine(">", line4);
-			twelveHr = getSingleInput();
+			alarmTwelveHr = getSingleInput();
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (twelveHr != 1 && twelveHr != 2);
-		
-		do {
-			sendLine("Month? (MM)", line1);
-			sendLine("Enter:", line2);
-			sendLine(">", line4);
-			month = getInput(2);
-			lcd_command(LCD_CLEARDISPLAY);
-		} while (month > 12 || month < 1);
-		
+
 		do {
 			sendLine("Day? (DD)", line1);
 			sendLine("Enter:", line2);
 			sendLine(">", line4);
-			date = getInput(2);
+			alarmDate = getInput(2);
 			lcd_command(LCD_CLEARDISPLAY);
 		} while (date > 31 || date < 1);
-		
-		do {
-			sendLine("Weekday? (1 -> 7)", line1);
-			sendLine("(Sun->Sat)", line2);
-			sendLine("Enter:", line3);
-			sendLine(">", line4);
-			day = getInput(1);
-			lcd_command(LCD_CLEARDISPLAY);
-		} while (day > 7 || day < 1);
-		
-		do {
-			sendLine("Year? (YYYY)", line1);
-			sendLine("Enter:", line2);
-			sendLine(">", line4);
-			year = getInput(4);
-			lcd_command(LCD_CLEARDISPLAY);
-		} while (year > 2099 || year < 2000);
-		
-		if (twelveHr == 1) {
-			twelveHr = 0x40;
-		} else if (twelveHr == 2) {
-			twelveHr = 0x60;
+				
+		if (alarmTwelveHr == 1) {
+			alarmTwelveHr = 0x40;
+		} else if (alarmTwelveHr == 2) {
+			alarmTwelveHr = 0x60;
 		}
 		
 		// initialize alarm with entered values
 		i2c.start();
                 i2c.write(ADDRTC);
                 i2c.write(0x07); // alarm
-                i2c.write(encode_bcd(0)); // seconds
-                i2c.write(encode_bcd(min));
-                i2c.write(encode_bcd(hour) | twelveHr);
+                i2c.write(encode_bcd(0)); // 0 seconds
+                i2c.write(encode_bcd(alarmMin));
+                i2c.write(encode_bcd(alarmHour) | alarmTwelveHr);
 		i2c.write(encode_bcd(day));
-                i2c.write(encode_bcd(date));
+                i2c.write(encode_bcd(alarmDate));
                 i2c.write(encode_bcd(month));
                 i2c.write(encode_bcd(year % 2000));
                 i2c.start();
@@ -507,12 +485,12 @@ int normalMode() {
 	alarmFlag = i2c.read(NACK);
 	i2c.stop();
 	
-	alarmFlag &= 1;
+	alarmFlag &= 0x01;
 	if (!alarmTriggered) {
 		alarmTriggered = alarmFlag;
 	}
 	
-	twelveHr = (hour & 0x20) >> 5;
+	twelveHr = (hour & 0x20) >> 5; // am/pm bit
 	sec = decode_bcd(sec);
 	min = decode_bcd(min);
 	hour = decode_bcd(hour);
@@ -521,7 +499,7 @@ int normalMode() {
 	month = decode_bcd(month);
 	year = decode_bcd(year);
 	
-	alarmTwelveHr = (alarmHour & 0x20) >> 5;
+	alarmTwelveHr = (alarmHour & 0x20) >> 5; // am/pm bit
 	alarmMin = decode_bcd(alarmMin);
 	alarmHour = decode_bcd(alarmHour & 0x1F);
 	alarmDate = decode_bcd(alarmDate);
@@ -556,12 +534,94 @@ int normalMode() {
 	
 	lcd_command(LCD_CLEARDISPLAY);
 	
+	sendTime(hour, min, twelveHr, month, date, year);	// print out clock time
+	
+	clearArr();
+	
+	char celArr[5];
+	sprintf(celArr, "%.2f", (double)celsius);
+	
+	char fahArr[5];
+	sprintf(fahArr, "%.2f", (double)fahren);
+	
+	// TEMP: C (F)
+	prepLine("Temp: ", ' ', 6, 0);
+	prepLine(celArr, ' ', size, 0);
+	prepLine(" ", 0xDF, 1, 1); // deg
+	prepLine(" ", 'C', 1, 1);
+	prepLine(" ", '(', 1, 1);
+	prepLine(fahArr, ' ', size, 0);
+	prepLine(" ", 0xDF, 1, 1); // deg
+	prepLine(" ", 'F', 1, 1);
+	prepLine(" ", ')', 1, 1);
+	sendLine(currentLine, line2);
+	clearArr();
+	
+	int chr;
+	int col = 1;
+	float counter = 0;
+	while (counter < 1.25f) {
+		chr = rowScan(col);
+		if (chr != 0) {
+			chr = getNum(chr, col);
+			if (chr == 15) { // F
+				if (alarmFlag == 1) { // display 
+					i2c.start();
+					i2c.write(ADDRTC);
+					i2c.write(0x0F);
+					i2c.write(0x00);
+					i2c.stop();
+					return 0;
+				}
+				return 1;
+			} else if (chr == 14 && !alarmTriggered) {
+				lcd_command(LCD_CLEARDISPLAY);
+				
+				sendLine("Alarm Setting", line1);
+				sendTime(alarmHour, alarmMin, alarmTwelveHr, month, alarmDate, year); 	// print out alarm time
+				// alarm month/year equal clock month/year
+				
+				clearArr();
+				
+				do {
+					chr = rowScan(col);
+					if (chr != 0) {
+						chr = getNum(chr, col);
+					}
+					if (col == 4) {
+						col = 1;
+					} else {
+						col++;
+					}
+					wait(0.03);
+				} while (chr != 14 && chr != 15);
+				
+				switch (chr) {
+					case 14:
+						return 0;
+					case 15:
+						return 1;
+				}
+			}
+		}
+		if (col == 4) {
+			col = 1; // wrap around
+		} else {
+			col++; // increment through columns
+		}
+		wait(0.03);
+		counter += 0.03f;
+	}
+	return 0; // reaches here when alarm flag is set
+}
+
+void sendTime(int setHour, int setMin, int setTwelveHr, int setMonth, int setDate, int setYear) {
 	char forPrint[3];
 	int size = sizeof(forPrint);
 	
 	// HOUR
-	sprintf(forPrint, "%d", hour);
-	if (hour < 10) {
+	sprintf(forPrint, "%d", setHour);
+	if (setHour < 10) {
 		prepLine(forPrint, '0', size, 1);
 		prepLine(forPrint, ' ', size - 1, 0);	////////////////////////////////////// ex hour 6 not 06
 	} else {
@@ -572,8 +632,8 @@ int normalMode() {
 	prepLine(" ", ':', 1, 1);
 	
 	// MIN
-	sprintf(forPrint, "%d", min);
-	if (min < 10) {
+	sprintf(forPrint, "%d", setMin);
+	if (setMin < 10) {
 		prepLine(forPrint, '0', size, 1);
 		prepLine(forPrint, ' ', size - 1, 0);
 	} else {
@@ -582,16 +642,15 @@ int normalMode() {
 	// END MIN
 	
 	// AM/PM
-	if (twelveHr == 1) {
+	if (setTwelveHr == 1) {
 		prepLine("PM ", ' ', 3, 0);
 	} else {
 		prepLine("AM ", ' ', 3, 0);
 	}
 	// END AM/PM
 	
-			////////////////////////////////////////// CAN BE FUNCTION
 	// MONTH
-	switch (month) {
+	switch (setMonth) {
 		case 1: 
 			prepLine("Jan ", ' ', 4, 0);
 			break;
@@ -632,8 +691,8 @@ int normalMode() {
 	// END MONTH
 	
 	// DATE
-	sprintf(forPrint, "%d", date);
-	if (date < 10) {
+	sprintf(forPrint, "%d", setDate);
+	if (setDate < 10) {
 		prepLine(forPrint, '0', size, 1);
 		prepLine(forPrint, ' ', size - 1, 0);
 	} else {
@@ -645,175 +704,11 @@ int normalMode() {
 	
 	// YEAR
 	char yearArr[5];
-	sprintf(yearArr, "%d", year + 2000);
+	sprintf(yearArr, "%d", setYear + 2000);
 	prepLine(yearArr, ' ', sizeof(yearArr), 0);
 	// END YEAR
 	
 	sendLine(currentLine, line3);
-	
-	clearArr();
-	char celArr[5];
-	sprintf(celArr, "%.2f", (double)celsius);
-	
-	char fahArr[5];
-	sprintf(fahArr, "%.2f", (double)fahren);
-	
-	// TEMP: C (F)
-	prepLine("Temp: ", ' ', 6, 0);
-	prepLine(celArr, ' ', size, 0);
-	prepLine(" ", 0xDF, 1, 1); // deg
-	prepLine(" ", 'C', 1, 1);
-	prepLine(" ", '(', 1, 1);
-	prepLine(fahArr, ' ', size, 0);
-	prepLine(" ", 0xDF, 1, 1);
-	prepLine(" ", 'F', 1, 1);
-	prepLine(" ", ')', 1, 1);
-	sendLine(currentLine, line2);
-	clearArr();
-	
-	int chr;
-	int col = 1;
-	float counter = 0;
-	while (counter < 1.25f) {
-		chr = rowScan(col);
-		if (chr != 0) {
-			chr = getNum(chr, col);
-			if (chr == 15) { // F
-				if (alarmFlag == 1) { // display 
-					i2c.start();
-					i2c.write(ADDRTC);
-					i2c.write(0x0F);
-					i2c.write(0x00);
-					i2c.stop();
-					return 0;
-				}
-				return 1;
-			} else if (chr == 14 && !alarmTriggered) {
-				lcd_command(LCD_CLEARDISPLAY);
-				sendLine("Alarm Setting", line1);
-				
-				// ALARM HOUR
-				sprintf(forPrint, "%d", alarmHour);
-				if (alarmHour < 10) {				///////////////////////////////////////////
-					prepLine(forPrint, '0', size, 1);	// hour fix for clock
-					prepLine(forPrint, ' ', size - 1, 0);
-				} else {
-					prepLine(forPrint, ' ', size, 0);
-				}
-				// END ALARM HOUR
-				
-				prepLine(" ", ':', 1, 1);
-				
-				// ALARM MIN
-				sprintf(forPrint, "%d", alarmMin);
-				if (alarmMin < 10) {
-					prepLine(forPrint, '0', size, 1);
-					prepLine(forPrint, ' ', size - 1, 0);
-				} else {
-					prepLine(forPrint, ' ', size, 0);
-				}
-				// END ALARM MIN
-				
-				// ALARM AM/PM
-				if (alarmTwelveHr == 1) {
-					prepLine("PM ", ' ', 3, 0);
-				} else {
-					prepLine("AM ", ' ', 3, 0);
-				}
-				// END ALARM AM/PM
-				
-						////////////////////////////////////////// CAN BE FUNCTION
-				// MONTH
-				switch (month) {
-					case 1: 
-						prepLine("Jan ", ' ', 4, 0);
-						break;
-					case 2: 
-						prepLine("Feb ", ' ', 4, 0);
-						break;
-					case 3: 
-						prepLine("Mar ", ' ', 4, 0);
-						break;
-					case 4: 
-						prepLine("Apr ", ' ', 4, 0);
-						break;
-					case 5: 
-						prepLine("May ", ' ', 4, 0);
-						break;
-					case 6: 
-						prepLine("Jun ", ' ', 4, 0);
-						break;
-					case 7: 
-						prepLine("Jul ", ' ', 4, 0);
-						break;
-					case 8: 
-						prepLine("Aug ", ' ', 4, 0);
-						break;
-					case 9: 
-						prepLine("Sep ", ' ', 4, 0);
-						break;
-					case 10: 
-						prepLine("Oct ", ' ', 4, 0);
-						break;
-					case 11: 
-						prepLine("Nov ", ' ', 4, 0);
-						break;
-					case 12: 
-						prepLine("Dec ", ' ', 4, 0);
-						break;
-
-				}
-				// END MONTH
-				
-				// ALARM DATE
-				sprintf(forPrint, "%d", alarmDate);
-				if (alarmDate < 10) {
-					prepLine(forPrint, '0', size, 1);
-					prepLine(forPrint, ':', size - 1, 0);
-				} else {
-					prepLine(forPrint, ' ', size, 0);
-				}
-				// END ALARM DATE
-				
-				prepLine(", ", ' ', 2, 0);
-				
-				// YEAR
-				sprintf(yearArr, "%d", year + 2000);
-				sendLine(currentLine, line2);
-				// END YEAR
-				
-				clearArr();
-				
-				do {
-					chr = rowScan(col);
-					if (chr != 0) {
-						chr = getNum(chr, col);
-					}
-					if (col == 4) {
-						col = 1;
-					} else {
-						col++;
-					}
-					wait(0.03);
-				} while (chr != 14 && chr != 15);
-				
-				switch (chr) {
-					case 14:
-						return 0;
-					case 15:
-						return 1;
-				}
-			}
-		}
-		if (col == 4) {
-			col = 1; // wrap around
-		} else {
-			col++; // increment through columns
-		}
-		wait(0.03);
-		counter += 0.03f;
-	}
-	return 0; // reaches here when alarm flag is set
 }
 
 int calcMode() {
