@@ -1,6 +1,3 @@
-// DESCRIPTION OF WHAT IS IN THE CODE, PURPOSE OF
-// OBJECTS (functions, definitions, etc) AND AUTHOR(S)
-
 ///*********************************************
 // Project: I2C to LCD Interface-Routine
 // Port PCF8574: 7  6  5  4  3  2  1  0
@@ -10,7 +7,6 @@
 // Header File Includes
 #include <stdio.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "mbed.h"
 #include "i2c.h"
@@ -100,9 +96,12 @@ DigitalOut c2(p6);
 DigitalOut c3(p7);
 DigitalOut c4(p8);
 
+// LED
+DigitalOut led(p9);
+
 // sun mon tue wed thu fri sat, 1 -> 7
 static int twelveHr, sec, min, hour, day, date, month, year;
-static bool alarmTriggered = 0;
+static int alarmIsFiring = 0, alarmFinished = 0;
 
 // current line's characters (lines are 20 char long)
 static char currentLine[20];
@@ -111,30 +110,29 @@ static int prevIndex = 0;	///////////////// RENAME
 
 
 // FUNCTION PROTOTYPES
-// initialize
+// given initialization functions
 static unsigned char wr_lcd_mode(char c, char mode);
 unsigned char lcd_command(char c);
 unsigned char lcd_data(char c);
 void lcd_init(void);
 void lcd_backlight(char on);
 // defined
-void prepLine(char word[], char ch, int size, int choice);
-void sendLine(char line[], int lineNum);
-void newLine(char c);
-void clearArr(void);
-void lcdIdle(void);
-void setClock(int mode);
-void sendTime(int hour, int min, int twelveHr, int month, int date, int year);
-int normalMode(void);
-int calcMode(void);
-int getSize(int result);
-int getInput(int len);
-int getSingleInput(void);
-int getNum(int row, int col);
-int getOpNum(void);
-int rowScan(int col);
-int getRow(void);
-void partB(void);
+void prepLine(char word[], char ch, int size, int choice); 	// builds line
+void sendLine(char line[], int lineNum);	// sends line to LCD
+void newLine(char c);	// emptyspaces
+void clearArr(void);	// clears line array
+void lcdIdle(void);	// "hub"/beginning function
+void setClock(int mode);	// sets the clock and alarm times
+void sendTime(int hour, int min, int twelveHr, int month, int date, int year);	// sends times to LCD
+int normalMode(void);	// normal mode operation (clock, temp, alarm)
+int calcMode(void);	// calc mode operation
+int getInput(int len);	// get input from keypad (>1 digit long)
+int getSingleInput(void);	// get input from keypad (1 digit long/ops)
+int getNum(int row, int col);	// gets number associated with row/col of keypad
+int getOpNum(void);	// gets op associated with number on keypad
+int rowScan(int col);	// performs rowscan operations in tandem with getrow
+int getRow(void);	// gets depressed key on iterating rows
+void partB(void);	// part b of project, displaying alphabets and integers
 
 static unsigned char wr_lcd_mode(char c, char mode) {
 	char ret = 1;
@@ -197,8 +195,7 @@ void lcd_backlight(char on) {
 	wr_lcd_mode(on, 8);
 }
 
-void prepLine(char word[], char ch, int size, int choice) {	/////////////////////////
-	int size = strlen(word);
+void prepLine(char word[], char ch, int size, int choice) {
 	if (choice == 0) {
 		for (int i = 0; i < size - 1; i++) {
 			currentLine[arrIndex] = word[i];
@@ -251,7 +248,7 @@ void sendLine(char line[], int lineNum) {
 void newLine(char c) { 	
 	int lineOffset = prevIndex;
 	for (int i = 0; i < lineOffset; i++) {
-		lcd_command(LCD_SHIFTCUSTOM); // effectively cursor shift?
+		lcd_command(LCD_SHIFTCUSTOM);
 	}
 	
 	lineOffset++;
@@ -266,7 +263,10 @@ void newLine(char c) {
 }
 
 void clearArr() {
-	sprintf(currentLine, "%c", ' ');
+	for (int i = 0; i < sizeof(currentLine); i++) {
+		currentLine[i] = ' ';
+	}
+	
 	arrIndex = 0;
 }
 
@@ -375,7 +375,7 @@ void setClock(int mode) {
                 i2c.write(0x00); // clock
                 i2c.write(encode_bcd(0)); // 0 seconds
                 i2c.write(encode_bcd(min));
-                i2c.write(encode_bcd(hour) | twelveHr);
+                i2c.write(encode_bcd(hour) | twelveHr);				/////////////////////////////////////
                 i2c.write(encode_bcd(day));
                 i2c.write(encode_bcd(date));
                 i2c.write(encode_bcd(month));
@@ -414,7 +414,7 @@ void setClock(int mode) {
 			sendLine(">", line4);
 			alarmTwelveHr = getSingleInput();
 			lcd_command(LCD_CLEARDISPLAY);
-		} while (twelveHr != 1 && twelveHr != 2);
+		} while (alarmTwelveHr != 1 && alarmTwelveHr != 2);
 
 		do {
 			sendLine("Day? (DD)", line1);
@@ -436,7 +436,7 @@ void setClock(int mode) {
                 i2c.write(0x07); // alarm
                 i2c.write(encode_bcd(0)); // 0 seconds
                 i2c.write(encode_bcd(alarmMin));
-                i2c.write(encode_bcd(alarmHour) | alarmTwelveHr);
+                i2c.write(encode_bcd(alarmHour) | alarmTwelveHr);	/////////////////////////////////////
 		i2c.write(encode_bcd(day));
                 i2c.write(encode_bcd(alarmDate));
                 i2c.write(encode_bcd(month));
@@ -462,7 +462,7 @@ int normalMode() {
 	min = i2c.read(ACK);
 	hour = i2c.read(ACK);
 	day = i2c.read(ACK);
-	date = i2c.read(ACK);
+	date = i2c.read(ACK);				///////
 	month = i2c.read(ACK);
 	year = i2c.read(NACK);
 	i2c.stop();
@@ -474,7 +474,8 @@ int normalMode() {
 	i2c.write(ADDRTC | 1);
 	alarmMin = i2c.read(ACK);
 	alarmHour = i2c.read(ACK);
-	alarmDate = i2c.read(NACK);
+	i2c.read(ACK);
+	alarmDate = i2c.read(NACK);			///////
 	i2c.stop();
 	
 	i2c.start();
@@ -485,24 +486,24 @@ int normalMode() {
 	alarmFlag = i2c.read(NACK);
 	i2c.stop();
 	
-	alarmFlag &= 0x01;
-	if (!alarmTriggered) {
-		alarmTriggered = alarmFlag;
-	}
-	
 	twelveHr = (hour & 0x20) >> 5; // am/pm bit
 	sec = decode_bcd(sec);
 	min = decode_bcd(min);
-	hour = decode_bcd(hour);
+	hour = decode_bcd(hour & 0x0F);
 	day = decode_bcd(day);
-	date = decode_bcd(date);
+	date = decode_bcd(date);			///////
 	month = decode_bcd(month);
 	year = decode_bcd(year);
 	
 	alarmTwelveHr = (alarmHour & 0x20) >> 5; // am/pm bit
 	alarmMin = decode_bcd(alarmMin);
-	alarmHour = decode_bcd(alarmHour & 0x1F);
-	alarmDate = decode_bcd(alarmDate);
+	alarmHour = decode_bcd(alarmHour & 0x0F);
+	alarmDate = decode_bcd(alarmDate);		///////
+	
+	if (alarmTwelveHr == twelveHr && alarmMin <= min && alarmHour <= hour && alarmDate <= date && alarmFinished == 0) {
+		alarmIsFiring = 1;	// alarm is firing
+		alarmFinished = 1;	// alarm has fired once
+	}
 	
 	i2c.start();
 	i2c.write(0x90);
@@ -528,7 +529,7 @@ int normalMode() {
 	}
 	float fahren = (celsius * 1.8f) + 32;
 	
-	if (alarmFlag == 1) {
+	if (alarmIsFiring == 1) {
 		sendLine("Alarm has expired", line1);
 	}
 	
@@ -546,26 +547,26 @@ int normalMode() {
 	
 	// TEMP: C (F)
 	prepLine("Temp: ", ' ', 6, 0);
-	prepLine(celArr, ' ', size, 0);
+	prepLine(celArr, ' ', sizeof(celArr), 0);
 	prepLine(" ", 0xDF, 1, 1); // deg
 	prepLine(" ", 'C', 1, 1);
 	prepLine(" ", '(', 1, 1);
-	prepLine(fahArr, ' ', size, 0);
+	prepLine(fahArr, ' ', sizeof(fahArr), 0);
 	prepLine(" ", 0xDF, 1, 1); // deg
 	prepLine(" ", 'F', 1, 1);
 	prepLine(" ", ')', 1, 1);
 	sendLine(currentLine, line2);
 	clearArr();
 	
-	int chr;
+	int inp;
 	int col = 1;
 	float counter = 0;
 	while (counter < 1.25f) {
-		chr = rowScan(col);
-		if (chr != 0) {
-			chr = getNum(chr, col);
-			if (chr == 15) { // F
-				if (alarmFlag == 1) { // display 
+		inp = rowScan(col);
+		if (inp != 0) {
+			inp = getNum(inp, col);
+			if (inp == 15) { // F, acknowledge alarm
+				if (alarmIsFiring == 1) { // is displaying
 					i2c.start();
 					i2c.write(ADDRTC);
 					i2c.write(0x0F);
@@ -574,19 +575,20 @@ int normalMode() {
 					return 0;
 				}
 				return 1;
-			} else if (chr == 14 && !alarmTriggered) {
+			} else if (inp == 14 && alarmIsFiring == 0) {
 				lcd_command(LCD_CLEARDISPLAY);
 				
 				sendLine("Alarm Setting", line1);
-				sendTime(alarmHour, alarmMin, alarmTwelveHr, month, alarmDate, year); 	// print out alarm time
+				// print out alarm time
+				sendTime(alarmHour, alarmMin, alarmTwelveHr, month, alarmDate, year); 	
 				// alarm month/year equal clock month/year
 				
 				clearArr();
 				
 				do {
-					chr = rowScan(col);
-					if (chr != 0) {
-						chr = getNum(chr, col);
+					inp = rowScan(col);
+					if (inp != 0) {
+						inp = getNum(inp, col);
 					}
 					if (col == 4) {
 						col = 1;
@@ -594,9 +596,9 @@ int normalMode() {
 						col++;
 					}
 					wait(0.03);
-				} while (chr != 14 && chr != 15);
+				} while (inp != 14 && inp != 15);
 				
-				switch (chr) {
+				switch (inp) {
 					case 14:
 						return 0;
 					case 15:
@@ -622,8 +624,8 @@ void sendTime(int setHour, int setMin, int setTwelveHr, int setMonth, int setDat
 	// HOUR
 	sprintf(forPrint, "%d", setHour);
 	if (setHour < 10) {
-		prepLine(forPrint, '0', size, 1);
-		prepLine(forPrint, ' ', size - 1, 0);	////////////////////////////////////// ex hour 6 not 06
+		prepLine(" ", '0', 1, 1);
+		prepLine(forPrint, ' ', size - 1, 0);	/////////////// error displays hour as HH + 60
 	} else {
 		prepLine(forPrint, ' ', size, 0);
 	}
@@ -736,7 +738,7 @@ int calcMode() {
 				break;
 		}
 		
-		op2 = getInput(3);	// possibly combine switches
+		op2 = getInput(3);
 		
 		switch (opNum) {
 			case 10: // A
@@ -757,9 +759,9 @@ int calcMode() {
 	}
 	
 	// -> normal mode (F)
-	if (opNum == 15) { //////////////////////////////////////////// DOESNT SWITCH BACK
+	if (opNum == 15) { 	// calculator needs result displayed to switch back to normal mode
 		lcd_command(LCD_CLEARDISPLAY);
-		return 0;
+		return 1;
 	} else if (opNum == 14) { // (E)
 		char resultArr[7];
 		sprintf(resultArr, "=%d", result);
@@ -774,32 +776,9 @@ int calcMode() {
 			wait(0.05);
 		}
 		lcd_command(LCD_CLEARDISPLAY);
-		return 1;
+		return 0;
 	}
-}
-
-int getSize(int result) {
-	int counter = 6, output = 0, divisor = 100000;
-	
-	if (result == 0) {
-		return 3;
-	}
-	
-	while (output == 0) {
-		output = result / divisor;
-		
-		if (output != 0) {
-			if (result < 0) {
-				return counter + 3;
-			} else {
-				return counter + 2;
-			}
-		} else {
-			counter--;
-			divisor /= 10;
-		}
-	}
-	return 0;
+	return 1;
 }
 
 int getInput(int length) {
@@ -1005,6 +984,6 @@ void partB() {
 
 int main() {
 	lcd_init();
-	//partB();
+	partB();
 	lcdIdle();
 }
