@@ -73,7 +73,7 @@
 #define line3 2
 #define line4 4
 
-I2C i2c(p9, p10);
+I2C i2c(p32, p31);
 
 // Keys
 /** 	1 - c1r1, 2 - c2r1, 3 - c3r1, A - c4r1
@@ -97,7 +97,7 @@ DigitalOut c3(p7);
 DigitalOut c4(p8);
 
 // LED
-DigitalOut led(p9);
+DigitalOut led(p15);
 
 // sun mon tue wed thu fri sat, 1 -> 7
 static int twelveHr, sec, min, hour, day, date, month, year;
@@ -531,6 +531,8 @@ int normalMode() {
 	
 	if (alarmIsFiring == 1) {
 		sendLine("Alarm has expired", line1);
+		led = 1;
+		wait(1);
 	}
 	
 	lcd_command(LCD_CLEARDISPLAY);
@@ -572,6 +574,8 @@ int normalMode() {
 					i2c.write(0x0F);
 					i2c.write(0x00);
 					i2c.stop();
+					led = 0;
+					alarmIsFiring = 0;
 					return 0;
 				}
 				return 1;
